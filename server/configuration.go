@@ -66,6 +66,11 @@ type configurationData struct {
 		// Defines the Docker image that will be used for this server
 		Image string `json:"image,omitempty"`
 	} `json:"container,omitempty"`
+
+	// HealthCheck is a Nycto addition that the stock Pterodactyl panel never
+	// sends. Without it, a server is marked running when it prints one of the
+	// "done" lines of its egg.
+	HealthCheck *HealthCheckConfiguration `json:"health_check,omitempty"`
 }
 
 func (s *Server) Config() *Configuration {

@@ -416,6 +416,15 @@ func (h *Handler) HandleInbound(ctx context.Context, m Message) error {
 				Args:  []string{state},
 			})
 
+			// Send the current health as well, so that the client does not have to
+			// wait for it to change to show it.
+			if b, err := json.Marshal(h.server.Health()); err == nil {
+				_ = h.SendJson(Message{
+					Event: server.HealthEvent,
+					Args:  []string{string(b)},
+				})
+			}
+
 			// Only send the current disk usage if the server is offline, if docker container is running,
 			// Environment#EnableResourcePolling() will send this data to all clients.
 			if state == environment.ProcessOfflineState {

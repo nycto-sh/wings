@@ -44,7 +44,9 @@
 | `parser/` | Egg config-file parsers (yaml/json/ini/xml/properties/file) |
 | `events/`, `system/` | Event bus, sinks, locks, atomics, version (`system.Version`) |
 | `loggers/cli/` | apex/log CLI handler |
-| `protocol/` | Protocol documentation for the fork |
+| `protocol/` | Protocol documentation for the fork. §10 holds the Nycto additions |
+| `docs/` | Feature guides for everything Nycto adds or changes, indexed in `docs/README.md` |
+| `server/health.go`, `server/health_probe.go` | Health checks (TCP/HTTP/process, with log matching as the fallback), see `docs/health-checks.md` |
 | `scripts/install.sh` | Installer/updater for a fresh Linux server (release download or `--source` build). Keep it shellcheck-clean |
 | `contrib/` | `nycto-wings.service` systemd unit. `scripts/install.sh` embeds a copy, so keep the two in sync |
 | `.github/assets/` | Nycto logo/icon (`*-dark.png` = white for dark backgrounds, `*-light.png` = dark), and `originals/` with the source artwork |
@@ -192,3 +194,8 @@ Docker image: `Dockerfile` (multi-stage, distroless; `--build-arg VERSION=`).
 5. Don't rename upstream-specific identifiers any further without the owner's
    approval. The module path is `github.com/nycto-sh/wings`. The protocol-facing
    names listed under "Fork names" stay as they are.
+6. **Document every new feature or behaviour change in the same commit.** Add or
+   update a guide in `docs/` (what it does, configuration, examples, compatibility,
+   troubleshooting) and list it in `docs/README.md`. Anything a panel can see or
+   send also goes in `protocol/WINGS_API.md`; Nycto additions go in §10 and must
+   stay optional, so the stock Pterodactyl panel keeps working.

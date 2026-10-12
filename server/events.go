@@ -19,6 +19,8 @@ const (
 	TransferLogsEvent           = "transfer logs"
 	TransferStatusEvent         = "transfer status"
 	DeletedEvent                = "deleted"
+	// HealthEvent is a Nycto addition that the stock Pterodactyl panel ignores.
+	HealthEvent = "health"
 )
 
 // Events returns the server's emitter instance.

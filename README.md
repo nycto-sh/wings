@@ -105,6 +105,15 @@ make build                     # release binaries for amd64 and arm64 in build/
 Changes that touch file handling, SFTP, authentication or container configuration get extra review. Keep
 protocol compatibility unless a break has been agreed. Contributor notes are in [`CLAUDE.md`](CLAUDE.md).
 
+## Features
+
+Nycto Wings adds features on top of Pterodactyl Wings. They're all optional, so the stock
+Pterodactyl panel keeps working. Guides are in [`docs/`](docs/README.md):
+
+- [Health checks](docs/health-checks.md): servers are marked online when they actually accept
+  connections (TCP, HTTP or process checks) rather than when the console prints a line,
+  with live healthy/unhealthy states.
+
 ## Reporting issues
 
 Report bugs and request features in [this repository's issues](https://github.com/nycto-sh/wings/issues).

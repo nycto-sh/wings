@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -144,6 +145,38 @@ func (e *Environment) IsRunning(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	return c.State.Running, nil
+}
+
+// Address returns the IP address the container can be reached at from Wings.
+// This is the container's address on its Docker network, so that connections
+// reach the server process directly rather than through the published ports,
+// which Docker may answer for even when nothing in the container is listening.
+func (e *Environment) Address(ctx context.Context) (string, error) {
+	c, err := e.ContainerInspect(ctx)
+	if err != nil {
+		return "", err
+	}
+	if c.ContainerJSONBase != nil && c.HostConfig != nil && c.HostConfig.NetworkMode.IsHost() {
+		return "127.0.0.1", nil
+	}
+	if c.NetworkSettings != nil {
+		names := make([]string, 0, len(c.NetworkSettings.Networks))
+		for name := range c.NetworkSettings.Networks {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			if ep := c.NetworkSettings.Networks[name]; ep != nil && ep.IPAddress != "" {
+				return ep.IPAddress, nil
+			}
+		}
+		for _, name := range names {
+			if ep := c.NetworkSettings.Networks[name]; ep != nil && ep.GlobalIPv6Address != "" {
+				return ep.GlobalIPv6Address, nil
+			}
+		}
+	}
+	return "", errors.New("environment/docker: container has no network address")
 }
 
 // ExitState returns the container exit state, the exit code and whether or not

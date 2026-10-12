@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"emperror.dev/errors"
 	"github.com/apex/log"
@@ -43,6 +44,9 @@ type Server struct {
 
 	// The crash handler for this server instance.
 	crasher CrashHandler
+
+	// Tracks the health of the server and runs its health checks.
+	health healthMonitor
 
 	resources   ResourceUsage
 	Environment environment.ProcessEnvironment `json:"-"`
@@ -101,6 +105,7 @@ func New(client remote.Client) (*Server, error) {
 		return nil, errors.Wrap(err, "server: could not set defaults for server configuration")
 	}
 	s.resources.State = system.NewAtomicString(environment.ProcessOfflineState)
+	s.health.current = Health{Status: HealthOffline, Message: "the server is not running", Since: time.Now().UTC()}
 	return &s, nil
 }
 
@@ -199,6 +204,9 @@ func (s *Server) Sync() error {
 	s.fs.SetDiskLimit(s.DiskSpace())
 
 	s.SyncWithEnvironment()
+
+	// A running server may have been given a health check that probes it.
+	s.onHealthConfigChange()
 
 	// If the server is suspended immediately disconnect all open websocket connections
 	// and any connected SFTP clients. We don't need to worry about revoking any JWTs
@@ -329,6 +337,8 @@ func (s *Server) OnStateChange() {
 		s.Events().Publish(StatusEvent, st)
 	}
 
+	s.onHealthStateChange()
+
 	// Reset the resource usage to 0 when the process fully stops so that all the UI
 	// views in the Panel correctly display 0.
 	if st == environment.ProcessOfflineState {
@@ -377,6 +387,8 @@ type APIResponse struct {
 	IsSuspended   bool          `json:"is_suspended"`
 	Utilization   ResourceUsage `json:"utilization"`
 	Configuration Configuration `json:"configuration"`
+	// Health is a Nycto addition that the stock Pterodactyl panel ignores.
+	Health Health `json:"health"`
 }
 
 // ToAPIResponse returns the server struct as an API object that can be consumed
@@ -387,5 +399,6 @@ func (s *Server) ToAPIResponse() APIResponse {
 		IsSuspended:   s.IsSuspended(),
 		Utilization:   s.Proc(),
 		Configuration: s.cfg.snapshot(),
+		Health:        s.Health(),
 	}
 }

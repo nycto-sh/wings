@@ -150,8 +150,9 @@ func (s *Server) onConsoleOutput(data []byte) {
 	v := make([]byte, len(data))
 	copy(v, data)
 
-	// Check if the server is currently starting.
-	if s.Environment.State() == environment.ProcessStartingState {
+	// Check if the server is currently starting. A server with a health check is
+	// marked running when it passes the check instead.
+	if s.Environment.State() == environment.ProcessStartingState && !s.healthCheck().active() {
 		// Check if we should strip ansi color codes.
 		if processConfiguration.Startup.StripAnsi {
 			v = stripAnsiRegex.ReplaceAll(v, []byte(""))

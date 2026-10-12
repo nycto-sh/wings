@@ -5,6 +5,11 @@ This file maps the contract between the daemon in this repo and a panel, as the
 It covers what Wings calls on the panel, what Wings serves, the console
 websocket, the JWTs, node authentication and SFTP authentication.
 
+Sections 0–9 describe the Wings protocol that the stock Pterodactyl panel uses.
+**Section 10 describes Nycto additions.** They are all optional and additive: a
+panel that doesn't know about them (such as the stock Pterodactyl panel) never
+sends them and can ignore what Wings sends back.
+
 Conventions:
 
 - Paths are relative to the repo root. `file.go:func` names the function to read.
@@ -164,7 +169,8 @@ Unmarshalled into `server/configuration.go:configurationData` by
   "crash_detection_enabled": true,  // defaults to the node's system.crash_detection.enabled
   "mounts": [{"target": "", "source": "", "read_only": false}],
   "egg": {"id": "", "file_denylist": ["..."]},
-  "container": {"image": "..."}
+  "container": {"image": "..."},
+  "health_check": { ... }           // optional Nycto addition, see §10.1
 }
 ```
 
@@ -232,7 +238,8 @@ Unknown server, denylisted token, reused `unique_id`, or wrong scope →
 | `POST /api/deauthorize-user` | `router/router_system.go:postDeauthorizeUser` | `{"user": "<user uuid>", "servers": ["<uuid>", ...]}`. An empty `servers` means every server | `204` | Revokes the user's JWTs issued until now (`tokens.DenyForServer`), closes their websockets and SFTP sessions |
 
 `server.APIResponse` (`server/server.go`):
-`{"state": "offline|starting|running|stopping", "is_suspended": bool, "utilization": ResourceUsage, "configuration": <settings object as §2.1>}`.
+`{"state": "offline|starting|running|stopping", "is_suspended": bool, "utilization": ResourceUsage, "configuration": <settings object as §2.1>, "health": Health}`.
+`health` is a Nycto addition (§10.1).
 
 `ResourceUsage` (`server/resources.go`, `environment/stats.go`):
 `{"memory_bytes","memory_limit_bytes","cpu_absolute","network":{"rx_bytes","tx_bytes"},"uptime","state","disk_bytes"}`.
@@ -338,7 +345,8 @@ Every arg is a string. Structured data is a JSON **string** inside `args[0]`.
    is missing, or if the scope isn't `websocket`.
 3. The token's `server_uuid` must equal the socket's server, else `jwt: server uuid mismatch`.
 4. On the first successful auth, the socket is counted toward the 30 limit, listeners
-   are registered, and Wings sends `auth success`, then `status` `[<state>]`.
+   are registered, and Wings sends `auth success`, then `status` `[<state>]`,
+   then `health` `[<json Health>]` (a Nycto addition, §10.1).
    When the server is offline (and not installing or transferring) it also sends
    `stats` `[<json ResourceUsage>]`.
 5. **Re-auth** with a fresh JWT: send `auth` again on the same socket. Wings
@@ -385,6 +393,7 @@ Unknown events are ignored.
 | `transfer logs` | `[line]` | `server/transfer/transfer.go:SendMessage` | `admin.websocket.transfer` |
 | `transfer status` | `[pending\|processing\|cancelling\|cancelled\|failed\|completed\|"failure"\|"success"]` | `transfer.go:SetStatus`, `router_transfer.go`, `router_server_transfer.go`, `deleteServer` | – |
 | `deleted` | none. The payload is `nil`, marshalled as the arg `"null"` | `router_server.go:deleteServer` | – |
+| `health` | `[json Health]` (Nycto addition, §10.1) | `server/health.go:updateHealthLocked`, and once after auth | – |
 | `token expiring` / `token expired` | – | `listeners.go:listenForExpiration` | – |
 | `daemon error` | `["Error Event [<uuid>]: <msg>"]`. The real message is shown only with `admin.websocket.errors`; otherwise a generic message | `websocket.go:SendErrorJson` | see text |
 | `jwt error` | `[reason]` | `validJwt` failures, `SendErrorJson` for JWT errors | – |
@@ -573,3 +582,135 @@ Server: `sftp/server.go`. Per-session handler: `sftp/handler.go`.
 - Whether the stock panel's `/api/remote/*` routes care about the `Accept: application/vnd.pterodactyl.v1+json` or `User-Agent` headers. Keep both unchanged until this is checked.
 - Whether `jwt.Verify` (gbrlsnchs/jwt v3) enforces the header `alg`.
 - Whether any panel still calls `POST /api/servers/:server/ws/deny`, or handles `POST /servers/{uuid}/archive` (Wings never calls it).
+
+---
+
+## 10. Nycto additions
+
+Everything in this section is optional. The stock Pterodactyl panel doesn't send
+any of it, and servers without it behave exactly as described in sections 0–9.
+A panel that wants these features sends the extra settings and reads the extra
+fields and events.
+
+### 10.1 Health checks
+
+Added 2026-10-13. User guide: [`docs/health-checks.md`](../docs/health-checks.md).
+Code: `server/health.go`, `server/health_probe.go`,
+`environment/docker/environment.go:Environment.Address`.
+
+Without a health check, Wings marks a server `running` when its console prints
+one of the egg's `startup.done` lines (§2.1). With a health check, Wings tests the
+server itself, marks it `running` when the check first passes, and keeps checking
+it while it runs.
+
+#### Configuration: `settings.health_check`
+
+Sent by the panel as part of the server's settings (`GET /api/remote/servers` and
+`GET /api/remote/servers/{uuid}`, §2.1). Omitting it, or sending `null`, means a
+`log` check, which is the upstream behaviour. Wings reads it again on every
+sync (`POST /api/servers/:server/sync`, and every start), so after changing it
+the panel should call sync. A running server applies the change without a
+restart, including a switch from `log` to an active check.
+
+```jsonc
+"health_check": {
+  "type": "tcp",                 // "log" | "tcp" | "http" | "process"
+  "port": 25565,                 // tcp/http: one of the server's allocated ports; default: the default allocation
+  "path": "/health",             // http only: path and query; default "/"
+  "expected_status": 200,        // http only: exact status code; default: any 200–399
+  "interval": 10,                // seconds between checks once healthy (2–300, default 10)
+  "timeout": 5,                  // seconds per check (1–60, never more than interval, default 5)
+  "start_period": 300,           // seconds to become healthy after starting (1–3600, default 300)
+  "retries": 3,                  // failed checks in a row before a healthy server is unhealthy (1–20, default 3)
+  "restart_on_unhealthy": false  // restart the server once when it becomes unhealthy
+}
+```
+
+| `type` | Passes when | Notes |
+|---|---|---|
+| `log` | The console prints one of the egg's `startup.done` lines | Upstream behaviour. Nothing is probed. Also used for an unknown `type`. |
+| `tcp` | A TCP connection to the port succeeds | For game servers that listen on TCP. **Not** for UDP-only games. |
+| `http` | `GET http://<server>:<port><path>` returns a 200–399 status, or exactly `expected_status` | Redirects are not followed. The body is ignored. |
+| `process` | The server's container is running | For programs with no port and no reliable "done" line, such as bots. |
+
+Rules:
+
+- Values of `0` or missing values use the defaults. Out-of-range values are
+  clamped to the limits above.
+- `tcp` and `http` checks connect only to **the server's own container**, at its
+  address on the Docker network, and only to a port allocated to the server. A
+  port that isn't allocated fails the check with the message
+  `port N is not allocated to this server`. The `path` can't change the host,
+  because only its path and query are used.
+- Once a server has an active check (`tcp`, `http` or `process`), the egg's
+  `startup.done` lines no longer mark it `running`.
+
+#### Health states
+
+The server-level `state` (`offline` / `starting` / `running` / `stopping`, §3.3) is
+unchanged, so a panel that only reads `state` keeps working. Health is reported
+separately:
+
+| `status` | Meaning |
+|---|---|
+| `offline` | The server process isn't running (`state` is `offline` or `stopping`). |
+| `starting` | The process is running but hasn't passed its check yet. |
+| `healthy` | The last check passed. For a `log` check: `state` is `running`. |
+| `unhealthy` | `retries` checks in a row failed after the server had been healthy, or it didn't pass within `start_period` of starting. |
+
+Transitions:
+
+1. Every start or restart begins a new run with `status: starting`. Results from
+   an earlier run are ignored.
+2. While `starting`, an active check runs every 2 seconds, so the server is
+   marked healthy within about 2 seconds of being ready. The first pass sets
+   `status: healthy` and changes `state` from `starting` to `running`.
+3. If the check still hasn't passed when `start_period` ends, `status` becomes
+   `unhealthy`. `state` stays `starting`, and checking continues every
+   `interval`. A later pass makes the server `healthy` and `running`. The server
+   is **not** restarted in this case, so a server that never starts can't loop.
+4. Once healthy, the check runs every `interval`. Each failure increments
+   `failures` while `status` stays `healthy`. When `failures` reaches `retries`,
+   `status` becomes `unhealthy`. The next pass resets `failures` to 0 and
+   `status` to `healthy`.
+5. When a healthy server becomes unhealthy and `restart_on_unhealthy` is true,
+   Wings restarts it once for that run, and prints
+   `Server failed N health checks in a row, restarting...` to the console.
+6. When `state` becomes `stopping` or `offline`, `status` becomes `offline`.
+
+#### `Health` object
+
+Used in the `health` websocket event and in the server details.
+
+```json
+{
+  "status": "healthy",
+  "check": "tcp",
+  "message": "port 25565 is accepting connections",
+  "since": "2026-10-13T12:00:00Z",
+  "failures": 0
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `status` | `offline`, `starting`, `healthy` or `unhealthy` |
+| `check` | The configured check type: `log`, `tcp`, `http` or `process` |
+| `message` | Human-readable result of the last check, safe to show to customers. It never contains internal IP addresses. |
+| `since` | When the server entered this `status` (RFC 3339, UTC) |
+| `failures` | Checks in a row that failed since the server was last healthy |
+
+Example messages: `port 25565 is accepting connections`,
+`port 25565 is not accepting connections`, `port 25565 did not answer within 5 seconds`,
+`GET /health on port 8080 returned 503`, `the server process is not running`,
+`waiting for the first health check to pass`,
+`port 25565 is not accepting connections (not healthy 300 seconds after starting)`,
+`port 25565 is not accepting connections (3 checks in a row failed)`.
+
+#### Where the panel gets it
+
+- **Websocket event `health`**, args `[<json Health>]`. It's sent whenever any
+  field changes, and once right after `auth success` and `status`. No
+  permission is needed. The stock panel ignores the event.
+- **`GET /api/servers/:server`** and **`GET /api/servers`**: the server details
+  include `"health": Health` (§3.3).
