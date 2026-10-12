@@ -33,6 +33,10 @@ while it runs.
 **UDP games** (Minecraft Bedrock, Valheim, Rust, CS2 and others) can't be tested with
 `tcp`. Use `process`, or leave them on `log`.
 
+**`process` doesn't notice a frozen program.** A program that hangs is still running as far
+as the system is concerned, so a `process` check stays healthy. Only `tcp` and `http`
+checks catch a server that is running but no longer responding.
+
 ## What customers see
 
 A server's health is one of:
