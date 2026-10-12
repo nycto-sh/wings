@@ -12,10 +12,10 @@ import (
 	"github.com/apex/log"
 	cerrdefs "github.com/containerd/errdefs"
 
-	"github.com/pterodactyl/wings/environment"
-	"github.com/pterodactyl/wings/remote"
-	"github.com/pterodactyl/wings/server/backup"
-	"github.com/pterodactyl/wings/server/filesystem"
+	"github.com/nycto-sh/wings/environment"
+	"github.com/nycto-sh/wings/remote"
+	"github.com/nycto-sh/wings/server/backup"
+	"github.com/nycto-sh/wings/server/filesystem"
 )
 
 // Notifies the panel of a backup's state and returns an error if one is encountered

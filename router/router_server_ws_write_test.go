@@ -14,7 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pterodactyl/wings/router/websocket"
+	"github.com/nycto-sh/wings/router/websocket"
 )
 
 // blockingConn is a connection whose writes can be made to block until it is

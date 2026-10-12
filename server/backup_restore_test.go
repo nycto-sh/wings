@@ -13,11 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/environment"
-	"github.com/pterodactyl/wings/remote"
-	"github.com/pterodactyl/wings/server/backup"
-	"github.com/pterodactyl/wings/server/filesystem"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/environment"
+	"github.com/nycto-sh/wings/remote"
+	"github.com/nycto-sh/wings/server/backup"
+	"github.com/nycto-sh/wings/server/filesystem"
 )
 
 const restoreTestUUID = "6a3c2f6e-1b7d-4c8e-9f0a-2d4b6c8e0f12"

@@ -12,9 +12,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v2"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/remote"
-	"github.com/pterodactyl/wings/server"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/remote"
+	"github.com/nycto-sh/wings/server"
 )
 
 func TestPostUpdateConfigurationRotatesCredentials(t *testing.T) {

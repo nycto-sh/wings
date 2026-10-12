@@ -16,9 +16,9 @@ import (
 	"github.com/juju/ratelimit"
 	"github.com/klauspost/pgzip"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/internal/progress"
-	"github.com/pterodactyl/wings/internal/ufs"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/internal/progress"
+	"github.com/nycto-sh/wings/internal/ufs"
 )
 
 const memory = 4 * 1024

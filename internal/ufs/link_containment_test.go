@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/pterodactyl/wings/internal/ufs"
+	"github.com/nycto-sh/wings/internal/ufs"
 )
 
 // newLinkedRoot returns a filesystem whose root holds symlinks to a directory and

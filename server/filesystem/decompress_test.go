@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pterodactyl/wings/config"
+	"github.com/nycto-sh/wings/config"
 )
 
 func gzipBytes(t *testing.T, data []byte) []byte {

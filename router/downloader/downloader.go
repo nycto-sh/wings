@@ -20,9 +20,9 @@ import (
 	"github.com/apex/log"
 	"github.com/google/uuid"
 
-	"github.com/pterodactyl/wings/config"
-	wnet "github.com/pterodactyl/wings/internal/network"
-	"github.com/pterodactyl/wings/server"
+	"github.com/nycto-sh/wings/config"
+	wnet "github.com/nycto-sh/wings/internal/network"
+	"github.com/nycto-sh/wings/server"
 )
 
 var client *http.Client

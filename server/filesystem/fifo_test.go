@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	"github.com/pterodactyl/wings/internal/ufs"
+	"github.com/nycto-sh/wings/internal/ufs"
 )
 
 // File operations return an error for named pipes rather than opening them.

@@ -21,12 +21,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/environment"
-	"github.com/pterodactyl/wings/remote"
-	"github.com/pterodactyl/wings/router/tokens"
-	wserver "github.com/pterodactyl/wings/server"
-	"github.com/pterodactyl/wings/server/transfer"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/environment"
+	"github.com/nycto-sh/wings/remote"
+	"github.com/nycto-sh/wings/router/tokens"
+	wserver "github.com/nycto-sh/wings/server"
+	"github.com/nycto-sh/wings/server/transfer"
 )
 
 // transferTestUUID is a lowercase version 4 UUID, as the installer requires.

@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/pterodactyl/wings/internal/ufs"
+	"github.com/nycto-sh/wings/internal/ufs"
 )
 
 // openForWrite returns the size the opened file had, and only truncates it when

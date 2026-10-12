@@ -28,17 +28,17 @@ import (
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/environment"
-	"github.com/pterodactyl/wings/internal/cron"
-	"github.com/pterodactyl/wings/internal/database"
-	"github.com/pterodactyl/wings/internal/network"
-	"github.com/pterodactyl/wings/loggers/cli"
-	"github.com/pterodactyl/wings/remote"
-	"github.com/pterodactyl/wings/router"
-	"github.com/pterodactyl/wings/server"
-	"github.com/pterodactyl/wings/sftp"
-	"github.com/pterodactyl/wings/system"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/environment"
+	"github.com/nycto-sh/wings/internal/cron"
+	"github.com/nycto-sh/wings/internal/database"
+	"github.com/nycto-sh/wings/internal/network"
+	"github.com/nycto-sh/wings/loggers/cli"
+	"github.com/nycto-sh/wings/remote"
+	"github.com/nycto-sh/wings/router"
+	"github.com/nycto-sh/wings/server"
+	"github.com/nycto-sh/wings/sftp"
+	"github.com/nycto-sh/wings/system"
 )
 
 var (

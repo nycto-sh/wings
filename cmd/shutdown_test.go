@@ -11,8 +11,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/server"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/server"
 )
 
 // On a signal the server states are saved and the HTTP server stops, so that

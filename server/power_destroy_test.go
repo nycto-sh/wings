@@ -6,7 +6,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pterodactyl/wings/system"
+	"github.com/nycto-sh/wings/system"
 )
 
 // Power actions that arrive while a server is being deleted return an error.

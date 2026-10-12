@@ -12,12 +12,12 @@ import (
 	"github.com/gbrlsnchs/jwt/v3"
 	ws "github.com/gorilla/websocket"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/environment"
-	"github.com/pterodactyl/wings/remote"
-	"github.com/pterodactyl/wings/router/tokens"
-	"github.com/pterodactyl/wings/router/websocket"
-	"github.com/pterodactyl/wings/server"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/environment"
+	"github.com/nycto-sh/wings/remote"
+	"github.com/nycto-sh/wings/router/tokens"
+	"github.com/nycto-sh/wings/router/websocket"
+	"github.com/nycto-sh/wings/server"
 )
 
 const websocketTestServerUuid = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"

@@ -18,7 +18,7 @@ import (
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/spf13/cobra"
 
-	"github.com/pterodactyl/wings/config"
+	"github.com/nycto-sh/wings/config"
 )
 
 var configureArgs struct {

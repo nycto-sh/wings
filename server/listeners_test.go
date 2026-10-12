@@ -4,8 +4,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/pterodactyl/wings/environment"
-	"github.com/pterodactyl/wings/remote"
+	"github.com/nycto-sh/wings/environment"
+	"github.com/nycto-sh/wings/remote"
 )
 
 // stateEnvironment is an environment that records the states it is set to.

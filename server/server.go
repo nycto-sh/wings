@@ -16,12 +16,12 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/creasty/defaults"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/environment"
-	"github.com/pterodactyl/wings/events"
-	"github.com/pterodactyl/wings/remote"
-	"github.com/pterodactyl/wings/server/filesystem"
-	"github.com/pterodactyl/wings/system"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/environment"
+	"github.com/nycto-sh/wings/events"
+	"github.com/nycto-sh/wings/remote"
+	"github.com/nycto-sh/wings/server/filesystem"
+	"github.com/nycto-sh/wings/system"
 )
 
 // Server is the high level definition for a server instance being controlled

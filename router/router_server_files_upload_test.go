@@ -18,11 +18,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/internal/database"
-	"github.com/pterodactyl/wings/remote"
-	"github.com/pterodactyl/wings/router/tokens"
-	"github.com/pterodactyl/wings/server"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/internal/database"
+	"github.com/nycto-sh/wings/remote"
+	"github.com/nycto-sh/wings/router/tokens"
+	"github.com/nycto-sh/wings/server"
 )
 
 const uploadTestServerUuid = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"

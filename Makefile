@@ -5,13 +5,13 @@ build:
 	GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -gcflags "all=-trimpath=$(pwd)" -o build/nycto-wings_linux_arm64 -v wings.go
 
 debug:
-	go build -o nycto-wings -ldflags="-X github.com/pterodactyl/wings/system.Version=$(GIT_HEAD)"
+	go build -o nycto-wings -ldflags="-X github.com/nycto-sh/wings/system.Version=$(GIT_HEAD)"
 	sudo ./nycto-wings --debug --ignore-certificate-errors --config config.yml --pprof --pprof-block-rate 1
 
 # Runs a remotly debuggable session for Nycto Wings allowing an IDE to connect and target
 # different breakpoints.
 rmdebug:
-	go build -o nycto-wings -gcflags "all=-N -l" -ldflags="-X github.com/pterodactyl/wings/system.Version=$(GIT_HEAD)" -race
+	go build -o nycto-wings -gcflags "all=-N -l" -ldflags="-X github.com/nycto-sh/wings/system.Version=$(GIT_HEAD)" -race
 	sudo dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec ./nycto-wings -- --debug --ignore-certificate-errors --config config.yml
 
 cross-build: clean build compress

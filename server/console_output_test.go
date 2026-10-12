@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/environment"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/environment"
 )
 
 // blockingStateEnvironment holds every call to State until it is released.

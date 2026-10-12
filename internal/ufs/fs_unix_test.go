@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pterodactyl/wings/internal/ufs"
+	"github.com/nycto-sh/wings/internal/ufs"
 )
 
 type testUnixFS struct {

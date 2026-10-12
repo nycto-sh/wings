@@ -11,8 +11,8 @@ import (
 	cerrdefs "github.com/containerd/errdefs"
 	"github.com/docker/docker/api/types/container"
 
-	"github.com/pterodactyl/wings/environment"
-	"github.com/pterodactyl/wings/remote"
+	"github.com/nycto-sh/wings/environment"
+	"github.com/nycto-sh/wings/remote"
 )
 
 // OnBeforeStart run before the container starts and get the process

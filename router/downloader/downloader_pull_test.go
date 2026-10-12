@@ -16,9 +16,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/remote"
-	"github.com/pterodactyl/wings/server"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/remote"
+	"github.com/nycto-sh/wings/server"
 )
 
 const pullTestServerUuid = "ffffffff-ffff-4fff-8fff-ffffffffffff"

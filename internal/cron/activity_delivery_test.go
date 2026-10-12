@@ -16,12 +16,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/internal/database"
-	"github.com/pterodactyl/wings/internal/models"
-	"github.com/pterodactyl/wings/remote"
-	"github.com/pterodactyl/wings/server"
-	"github.com/pterodactyl/wings/system"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/internal/database"
+	"github.com/nycto-sh/wings/internal/models"
+	"github.com/nycto-sh/wings/remote"
+	"github.com/nycto-sh/wings/server"
+	"github.com/nycto-sh/wings/system"
 )
 
 const (

@@ -97,7 +97,7 @@ PowerShell (Windows dev machine):
 
 ```powershell
 $env:GOOS="linux"; $env:GOARCH="amd64"; $env:CGO_ENABLED="0"
-go build -trimpath -ldflags="-s -w -X github.com/pterodactyl/wings/system.Version=dev" -o build/nycto-wings_linux_amd64 .
+go build -trimpath -ldflags="-s -w -X github.com/nycto-sh/wings/system.Version=dev" -o build/nycto-wings_linux_amd64 .
 $env:GOARCH="arm64"; go build -trimpath -ldflags="-s -w" -o build/nycto-wings_linux_arm64 .
 go vet ./...      # with GOOS=linux still set; type-checks Linux-only files and tests
 Remove-Item Env:GOOS, Env:GOARCH, Env:CGO_ENABLED
@@ -106,7 +106,7 @@ Remove-Item Env:GOOS, Env:GOARCH, Env:CGO_ENABLED
 Bash / Linux / WSL: `make build` (amd64 + arm64 into `build/`), or
 
 ```sh
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/pterodactyl/wings/system.Version=dev" -o build/nycto-wings_linux_amd64 .
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/nycto-sh/wings/system.Version=dev" -o build/nycto-wings_linux_amd64 .
 ```
 
 Lint (matches CI): `GOOS=linux golangci-lint run ./...` (config in `.golangci.yml`; `gosec` enabled).
@@ -138,8 +138,8 @@ Docker image: `Dockerfile` (multi-stage, distroless; `--build-arg VERSION=`).
 ## Dev workflow
 
 1. Edit locally (Windows). Run the `GOOS=linux` build and `go vet`.
-2. Commit and push to GitHub (`origin` = `github.com/nycto-sh/wings`, main branch `develop`).
-   Only commit or push when the owner asks.
+2. Commit and push **directly to `develop`** on the fork (`origin` = `github.com/nycto-sh/wings`).
+   Don't create feature branches or PRs, and never push to or open PRs against `pterodactyl/wings`.
 3. On the Debian 12 VPS (Docker + root available), the source is at `/opt/nycto/wings-src`:
    `git pull`, `go test ./...`, build, install to `/usr/local/bin/nycto-wings`, and
    restart `nycto-wings.service` (unit in `contrib/`). Stock Pterodactyl Wings is also
@@ -187,5 +187,5 @@ Docker image: `Dockerfile` (multi-stage, distroless; `--build-arg VERSION=`).
    "Dane Everitt & Contributors" copyright notices and `internal/ufs/LICENSE` / `go.LICENSE`.
    Add Nycto attribution alongside, never in place of, the upstream notices.
 5. Don't rename upstream-specific identifiers any further without the owner's
-   approval. The module path `github.com/pterodactyl/wings` is still upstream's,
-   and its rename is pending.
+   approval. The module path is `github.com/nycto-sh/wings`. The protocol-facing
+   names listed under "Fork names" stay as they are.

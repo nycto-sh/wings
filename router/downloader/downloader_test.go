@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/server"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/server"
 )
 
 func TestMain(m *testing.M) {

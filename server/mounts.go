@@ -11,8 +11,8 @@ import (
 	"emperror.dev/errors"
 	"github.com/apex/log"
 
-	"github.com/pterodactyl/wings/config"
-	"github.com/pterodactyl/wings/environment"
+	"github.com/nycto-sh/wings/config"
+	"github.com/nycto-sh/wings/environment"
 )
 
 // To avoid confusion when working with mounts, assume that a server.Mount has not been properly

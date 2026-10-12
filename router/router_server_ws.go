@@ -10,9 +10,9 @@ import (
 	"emperror.dev/errors"
 	"github.com/gin-gonic/gin"
 	ws "github.com/gorilla/websocket"
-	"github.com/pterodactyl/wings/router/middleware"
-	"github.com/pterodactyl/wings/router/websocket"
-	"github.com/pterodactyl/wings/server"
+	"github.com/nycto-sh/wings/router/middleware"
+	"github.com/nycto-sh/wings/router/websocket"
+	"github.com/nycto-sh/wings/server"
 	"golang.org/x/time/rate"
 )
 

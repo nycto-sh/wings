@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pterodactyl/wings/remote"
+	"github.com/nycto-sh/wings/remote"
 )
 
 func newConfiguredServer(t *testing.T) *Server {

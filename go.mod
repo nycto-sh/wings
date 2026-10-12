@@ -1,4 +1,4 @@
-module github.com/pterodactyl/wings
+module github.com/nycto-sh/wings
 
 go 1.26.0
 
