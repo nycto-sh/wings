@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/nycto-sh/wings/config"
 	"github.com/nycto-sh/wings/environment"
 	"github.com/nycto-sh/wings/remote"
 )
@@ -100,10 +102,10 @@ func unusedPort(t *testing.T) int {
 
 func TestHealthCheckDefaults(t *testing.T) {
 	var nilConfig *HealthCheckConfiguration
-	require.Equal(t, HealthCheckLog, nilConfig.normalize().typ)
-	require.False(t, nilConfig.normalize().active())
+	require.Equal(t, HealthCheckLog, normalizeHealthCheck(nilConfig).typ)
+	require.False(t, normalizeHealthCheck(nilConfig).active())
 
-	hc := (&HealthCheckConfiguration{Type: "tcp"}).normalize()
+	hc := normalizeHealthCheck(&HealthCheckConfiguration{Type: "tcp"})
 	require.Equal(t, HealthCheckTCP, hc.typ)
 	require.Equal(t, 10*time.Second, hc.interval)
 	require.Equal(t, 5*time.Second, hc.timeout)
@@ -111,14 +113,14 @@ func TestHealthCheckDefaults(t *testing.T) {
 	require.Equal(t, 3, hc.retries)
 	require.Equal(t, "/", hc.path.Path)
 
-	require.Equal(t, HealthCheckLog, (&HealthCheckConfiguration{Type: "ping"}).normalize().typ)
+	require.Equal(t, HealthCheckLog, normalizeHealthCheck(&HealthCheckConfiguration{Type: "ping"}).typ)
 }
 
 func TestHealthCheckLimits(t *testing.T) {
-	hc := (&HealthCheckConfiguration{
+	hc := normalizeHealthCheck(&HealthCheckConfiguration{
 		Type: "http", Interval: 1, Timeout: 999, StartPeriod: 99999, Retries: 99,
 		Port: 70000, ExpectedStatus: 42,
-	}).normalize()
+	})
 	require.Equal(t, 2*time.Second, hc.interval)
 	require.Equal(t, hc.interval, hc.timeout, "the timeout may not be longer than the interval")
 	require.Equal(t, 3600*time.Second, hc.startPeriod)
@@ -139,7 +141,7 @@ func TestHealthCheckPathCannotChangeHost(t *testing.T) {
 	require.Equal(t, "/status", u.Path)
 	require.Equal(t, "full=1", u.RawQuery)
 
-	target := (&HealthCheckConfiguration{Type: "http", Path: "@evil.example/"}).normalize().path
+	target := normalizeHealthCheck(&HealthCheckConfiguration{Type: "http", Path: "@evil.example/"}).path
 	require.Equal(t, "/", target.RequestURI())
 }
 
@@ -147,13 +149,13 @@ func TestTCPHealthProbe(t *testing.T) {
 	_, port := listen(t)
 	s, _ := newHealthServer(t, environment.ProcessRunningState, nil, port)
 
-	ok, msg := s.probeHealth(context.Background(), (&HealthCheckConfiguration{Type: "tcp"}).normalize())
+	ok, msg := s.probeHealth(context.Background(), normalizeHealthCheck(&HealthCheckConfiguration{Type: "tcp"}))
 	require.True(t, ok, msg)
 	require.Equal(t, "port "+strconv.Itoa(port)+" is accepting connections", msg)
 
 	closed := unusedPort(t)
 	s.cfg.Allocations.DefaultMapping.Port = closed
-	ok, msg = s.probeHealth(context.Background(), (&HealthCheckConfiguration{Type: "tcp"}).normalize())
+	ok, msg = s.probeHealth(context.Background(), normalizeHealthCheck(&HealthCheckConfiguration{Type: "tcp"}))
 	require.False(t, ok)
 	require.Equal(t, "port "+strconv.Itoa(closed)+" is not accepting connections", msg)
 	require.NotContains(t, msg, "127.0.0.1", "internal addresses must not be shown to users")
@@ -164,12 +166,12 @@ func TestHealthProbeRefusesUnallocatedPorts(t *testing.T) {
 	_, port := listen(t)
 	s, _ := newHealthServer(t, environment.ProcessRunningState, nil, port+1)
 
-	ok, msg := s.probeHealth(context.Background(), (&HealthCheckConfiguration{Type: "tcp", Port: port}).normalize())
+	ok, msg := s.probeHealth(context.Background(), normalizeHealthCheck(&HealthCheckConfiguration{Type: "tcp", Port: port}))
 	require.False(t, ok)
 	require.Equal(t, "port "+strconv.Itoa(port)+" is not allocated to this server", msg)
 
 	s.cfg.Allocations.Mappings = map[string][]int{"0.0.0.0": {port}}
-	ok, msg = s.probeHealth(context.Background(), (&HealthCheckConfiguration{Type: "tcp", Port: port}).normalize())
+	ok, msg = s.probeHealth(context.Background(), normalizeHealthCheck(&HealthCheckConfiguration{Type: "tcp", Port: port}))
 	require.True(t, ok, msg)
 }
 
@@ -197,7 +199,7 @@ func TestHTTPHealthProbe(t *testing.T) {
 	port := srv.Listener.Addr().(*net.TCPAddr).Port
 	s, _ := newHealthServer(t, environment.ProcessRunningState, nil, port)
 
-	hc := (&HealthCheckConfiguration{Type: "http", Path: "/health?deep=1"}).normalize()
+	hc := normalizeHealthCheck(&HealthCheckConfiguration{Type: "http", Path: "/health?deep=1"})
 	ok, msg := s.probeHealth(context.Background(), hc)
 	require.True(t, ok, msg)
 	mu.Lock()
@@ -215,14 +217,14 @@ func TestHTTPHealthProbe(t *testing.T) {
 	setStatus(http.StatusFound)
 	ok, _ = s.probeHealth(context.Background(), hc)
 	require.True(t, ok)
-	ok, msg = s.probeHealth(context.Background(), (&HealthCheckConfiguration{Type: "http", ExpectedStatus: 200}).normalize())
+	ok, msg = s.probeHealth(context.Background(), normalizeHealthCheck(&HealthCheckConfiguration{Type: "http", ExpectedStatus: 200}))
 	require.False(t, ok)
 	require.True(t, strings.HasSuffix(msg, "returned 302"), msg)
 }
 
 func TestProcessHealthProbe(t *testing.T) {
 	s, env := newHealthServer(t, environment.ProcessRunningState, nil, 0)
-	hc := (&HealthCheckConfiguration{Type: "process"}).normalize()
+	hc := normalizeHealthCheck(&HealthCheckConfiguration{Type: "process"})
 
 	ok, _ := s.probeHealth(context.Background(), hc)
 	require.True(t, ok)
@@ -381,4 +383,34 @@ func TestHealthChangesArePublished(t *testing.T) {
 	}
 	require.Contains(t, got[0], `"status":"starting"`)
 	require.Contains(t, got[1], `"status":"healthy"`)
+}
+
+// A check sent by the Panel takes priority over one assigned by the node's
+// configuration, and a server's own check over its egg's.
+func TestHealthCheckFromNodeConfiguration(t *testing.T) {
+	cfg, err := config.NewAtPath(filepath.Join(t.TempDir(), "config.yml"))
+	require.NoError(t, err)
+	cfg.AuthenticationToken = "test-token"
+	cfg.HealthChecks = config.HealthCheckOverrides{
+		Eggs:    map[string]*config.HealthCheckConfiguration{"EGG-UUID": {Type: "process"}},
+		Servers: map[string]*config.HealthCheckConfiguration{"server-uuid": {Type: "tcp"}},
+	}
+	config.Set(cfg)
+	t.Cleanup(func() {
+		cfg.HealthChecks = config.HealthCheckOverrides{}
+		config.Set(cfg)
+	})
+
+	s, _ := newHealthServer(t, environment.ProcessOfflineState, nil, 0)
+	require.Equal(t, HealthCheckLog, s.healthCheck().typ)
+
+	s.cfg.Egg.ID = "egg-uuid"
+	require.Equal(t, HealthCheckProcess, s.healthCheck().typ, "the egg's check applies, ignoring case")
+
+	s.cfg.Uuid = "SERVER-UUID"
+	require.Equal(t, HealthCheckTCP, s.healthCheck().typ, "the server's check takes priority over its egg's")
+	require.Equal(t, HealthCheckTCP, s.Health().Check)
+
+	s.cfg.HealthCheck = &HealthCheckConfiguration{Type: "http"}
+	require.Equal(t, HealthCheckHTTP, s.healthCheck().typ, "the Panel's check takes priority")
 }

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nycto-sh/wings/config"
 	"github.com/nycto-sh/wings/environment"
 )
 
@@ -55,33 +56,8 @@ const (
 var healthStartingInterval = 2 * time.Second
 
 // HealthCheckConfiguration is the optional "health_check" object in the
-// settings the Panel sends for a server. Zero values use the defaults.
-type HealthCheckConfiguration struct {
-	// Type is one of "log", "tcp", "http" or "process". Anything else is treated
-	// as "log".
-	Type string `json:"type"`
-	// Port is the port checked by "tcp" and "http" checks. It must be one of the
-	// server's allocations, and defaults to the default allocation.
-	Port int `json:"port,omitempty"`
-	// Path is requested by "http" checks, and defaults to "/".
-	Path string `json:"path,omitempty"`
-	// ExpectedStatus is the status code an "http" check expects. When it is not
-	// set, any status from 200 to 399 is healthy.
-	ExpectedStatus int `json:"expected_status,omitempty"`
-	// Interval is the number of seconds between checks once a server is healthy.
-	Interval int `json:"interval,omitempty"`
-	// Timeout is the number of seconds a single check may take.
-	Timeout int `json:"timeout,omitempty"`
-	// StartPeriod is the number of seconds a server has to become healthy after
-	// it starts, after which it is marked unhealthy.
-	StartPeriod int `json:"start_period,omitempty"`
-	// Retries is the number of checks in a row that must fail before a healthy
-	// server is marked unhealthy.
-	Retries int `json:"retries,omitempty"`
-	// RestartOnUnhealthy restarts a server that becomes unhealthy after having
-	// been healthy.
-	RestartOnUnhealthy bool `json:"restart_on_unhealthy,omitempty"`
-}
+// settings the Panel sends for a server.
+type HealthCheckConfiguration = config.HealthCheckConfiguration
 
 // healthCheck is a health check configuration with its defaults and limits
 // applied.
@@ -115,9 +91,9 @@ func clampSeconds(v, def, lo, hi int) time.Duration {
 	return time.Duration(clamp(v, def, lo, hi)) * time.Second
 }
 
-// normalize applies the defaults and limits to a health check configuration. A
-// nil configuration is a "log" check.
-func (c *HealthCheckConfiguration) normalize() healthCheck {
+// normalizeHealthCheck applies the defaults and limits to a health check
+// configuration. A nil configuration is a "log" check.
+func normalizeHealthCheck(c *HealthCheckConfiguration) healthCheck {
 	hc := healthCheck{typ: HealthCheckLog}
 	if c == nil {
 		return hc
@@ -184,12 +160,16 @@ type healthMonitor struct {
 	probing bool
 }
 
-// healthCheck returns the server's health check configuration.
+// healthCheck returns the server's health check: the one the Panel sent, or
+// else the one the node's configuration assigns to the server or its egg.
 func (s *Server) healthCheck() healthCheck {
 	s.cfg.mu.RLock()
-	c := s.cfg.HealthCheck
+	c, id, egg := s.cfg.HealthCheck, s.cfg.Uuid, s.cfg.Egg.ID
 	s.cfg.mu.RUnlock()
-	return c.normalize()
+	if c == nil {
+		c = config.HealthCheckOverride(id, egg)
+	}
+	return normalizeHealthCheck(c)
 }
 
 // Health returns the current health of the server.
@@ -226,6 +206,7 @@ func (s *Server) updateHealthLocked(status HealthStatus, message string, failure
 	}
 	if cur.Status != status || cur.Since.IsZero() {
 		cur.Since = time.Now().UTC()
+		s.Log().WithField("health", status).WithField("message", message).Info("server health changed")
 	}
 	cur.Status = status
 	cur.Message = message

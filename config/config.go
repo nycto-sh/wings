@@ -396,6 +396,10 @@ type Configuration struct {
 
 	// IgnorePanelConfigUpdates causes confiuration updates that are sent by the panel to be ignored.
 	IgnorePanelConfigUpdates bool `json:"ignore_panel_config_updates" yaml:"ignore_panel_config_updates"`
+
+	// HealthChecks assigns health checks to servers by egg or server UUID, for
+	// panels that do not send them. Only the node operator can set this.
+	HealthChecks HealthCheckOverrides `json:"-" yaml:"health_checks,omitempty"`
 }
 
 // PanelConfiguration contains the only configuration values the Panel is allowed

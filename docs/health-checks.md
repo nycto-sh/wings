@@ -108,6 +108,59 @@ Wings reads the settings again whenever the panel syncs the server
 changing them. A running server picks up the new settings without a restart, including
 when it switches from `log` to a check that probes it.
 
+## Setting checks on the node
+
+Panels that don't send health checks, such as the stock Pterodactyl panel, can still use
+them. The node operator assigns checks in `/etc/nycto/config.yml`, either for every server
+of an egg or for a single server:
+
+```yaml
+health_checks:
+  eggs:
+    # Every server of this egg, for example Minecraft Java Edition.
+    5d1b8a7c-0000-4000-8000-000000000000:
+      type: tcp
+  servers:
+    # One server, which takes priority over its egg's check.
+    9568b9c8-5b9e-42e6-ab2a-f4ed9ed7ad90:
+      type: http
+      port: 8080
+      path: /health
+      restart_on_unhealthy: true
+```
+
+The settings are the same as in the table above, written in YAML.
+
+**Which check applies.** The first of these that exists:
+
+1. a check sent by the panel
+2. the server's entry under `servers`
+3. the server's egg's entry under `eggs`
+4. otherwise, `log`
+
+To force the old behaviour for one server of an egg that has a check, give that server
+`type: log`.
+
+**Applying changes.** Wings reads this section when it starts, so run
+`systemctl restart nycto-wings` after editing it. Game servers keep running through a
+Wings restart, and their checks start right away.
+
+**Finding the UUIDs.** Wings lists every server on the node with its UUID and egg UUID.
+Run this on the node, with your node's address and daemon port (install `jq` with
+`apt install jq` if needed):
+
+```bash
+TOKEN=$(awk '$1 == "token:" {print $2}' /etc/nycto/config.yml)
+curl -s -H "Authorization: Bearer $TOKEN" https://node.example.com:8081/api/servers \
+  | jq -r '.[] | "\(.configuration.uuid)  egg=\(.configuration.egg.id)  \(.configuration.meta.name)  health=\(.health.status)"'
+```
+
+**Watching it work.** Every change of health is logged:
+
+```bash
+journalctl -u nycto-wings -f | grep "server health changed"
+```
+
 ## How it behaves
 
 1. **Start.** Every start or restart begins in **Starting**.
@@ -149,5 +202,6 @@ Remove the `health_check` setting, or set `"type": "log"`.
 ## Compatibility
 
 Everything is optional. The stock Pterodactyl panel never sends `health_check`, so its
-servers keep the "done" line behaviour. The new `health` websocket event and `health`
-field in the server details are ignored by panels that don't use them.
+servers keep the "done" line behaviour unless the node assigns them a check
+([Setting checks on the node](#setting-checks-on-the-node)). The new `health` websocket
+event and `health` field in the server details are ignored by panels that don't use them.

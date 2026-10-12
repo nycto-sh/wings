@@ -574,6 +574,9 @@ Server: `sftp/server.go`. Per-session handler: `sftp/handler.go`.
   (same VPS) completed through the panel. That confirms the panel's transfer `token`
   includes the `Bearer ` prefix, the panel signs the transfer JWT with the destination
   node's secret, and the archive/checksum stream between the two daemons is compatible.
+- **2026-10-13:** with health checks (§10.1) added, `go test ./...` passed on the VPS,
+  including all health tests, and node 3 behaved normally with the stock panel, which
+  uses the `log` fallback.
 
 ## 9. Open questions (all UNVERIFIED)
 
@@ -644,6 +647,24 @@ Rules:
   because only its path and query are used.
 - Once a server has an active check (`tcp`, `http` or `process`), the egg's
   `startup.done` lines no longer mark it `running`.
+
+#### Checks set on the node
+
+The node operator can also assign checks in the Wings configuration file
+(`health_checks.eggs` by egg UUID, `health_checks.servers` by server UUID; see
+[`docs/health-checks.md`](../docs/health-checks.md#setting-checks-on-the-node)).
+This is for panels that don't send `health_check`. Which check applies, first
+match wins:
+
+1. `settings.health_check` from the panel
+2. `health_checks.servers[<server uuid>]`
+3. `health_checks.eggs[<egg uuid>]`, using `settings.egg.id`
+4. `log`
+
+A check set on the node doesn't appear in `configuration.health_check` in the
+server details, which only shows what the panel sent. `health.check` always
+shows the check that actually applies. The panel can't change this section:
+`POST /api/update` ignores it (§3.3).
 
 #### Health states
 
