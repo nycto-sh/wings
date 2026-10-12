@@ -137,6 +137,7 @@ func (s *Server) HandlePowerAction(action PowerAction, waitSeconds ...int) error
 
 		// Every start is a new run, which has to pass its health check again.
 		s.beginHealthRun()
+		s.crasher.onStart()
 		return s.Environment.Start(s.Context())
 	case PowerActionStop:
 		fallthrough
@@ -166,6 +167,7 @@ func (s *Server) HandlePowerAction(action PowerAction, waitSeconds ...int) error
 
 		// Every start is a new run, which has to pass its health check again.
 		s.beginHealthRun()
+		s.crasher.onStart()
 		return s.Environment.Start(s.Context())
 	case PowerActionTerminate:
 		return s.Environment.Terminate(s.Context(), "SIGKILL")

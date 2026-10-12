@@ -201,6 +201,30 @@ func (e *Environment) ExitState() (uint32, bool, error) {
 	return uint32(c.State.ExitCode), c.State.OOMKilled, nil
 }
 
+// ExitDetails returns how the container last exited, including when it started
+// and stopped, which the crash handler reports to the Panel.
+func (e *Environment) ExitDetails(ctx context.Context) (environment.ExitDetails, error) {
+	c, err := e.ContainerInspect(ctx)
+	if err != nil {
+		if cerrdefs.IsNotFound(err) {
+			// The same result as ExitState, for a container that has disappeared.
+			return environment.ExitDetails{ExitCode: 1}, nil
+		}
+		return environment.ExitDetails{}, errors.WrapIf(err, "environment/docker: failed to inspect container")
+	}
+	d := environment.ExitDetails{}
+	if c.ContainerJSONBase == nil || c.State == nil {
+		return d, nil
+	}
+	d.ExitCode = uint32(c.State.ExitCode)
+	d.OOMKilled = c.State.OOMKilled
+	// Docker reports times that are not set as "0001-01-01T00:00:00Z", which parse
+	// to the zero time.
+	d.StartedAt, _ = time.Parse(time.RFC3339Nano, c.State.StartedAt)
+	d.FinishedAt, _ = time.Parse(time.RFC3339Nano, c.State.FinishedAt)
+	return d, nil
+}
+
 // Config returns the environment configuration allowing a process to make
 // modifications of the environment on the fly.
 func (e *Environment) Config() *environment.Configuration {

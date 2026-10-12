@@ -425,6 +425,17 @@ func (h *Handler) HandleInbound(ctx context.Context, m Message) error {
 				})
 			}
 
+			// If the server is offline because of a crash it was not restarted
+			// after, explain it to clients that connect afterwards too.
+			if c := h.server.PendingCrash(); c != nil {
+				if b, err := json.Marshal(c); err == nil {
+					_ = h.SendJson(Message{
+						Event: server.CrashEvent,
+						Args:  []string{string(b)},
+					})
+				}
+			}
+
 			// Only send the current disk usage if the server is offline, if docker container is running,
 			// Environment#EnableResourcePolling() will send this data to all clients.
 			if state == environment.ProcessOfflineState {

@@ -238,8 +238,8 @@ Unknown server, denylisted token, reused `unique_id`, or wrong scope →
 | `POST /api/deauthorize-user` | `router/router_system.go:postDeauthorizeUser` | `{"user": "<user uuid>", "servers": ["<uuid>", ...]}`. An empty `servers` means every server | `204` | Revokes the user's JWTs issued until now (`tokens.DenyForServer`), closes their websockets and SFTP sessions |
 
 `server.APIResponse` (`server/server.go`):
-`{"state": "offline|starting|running|stopping", "is_suspended": bool, "utilization": ResourceUsage, "configuration": <settings object as §2.1>, "health": Health}`.
-`health` is a Nycto addition (§10.1).
+`{"state": "offline|starting|running|stopping", "is_suspended": bool, "utilization": ResourceUsage, "configuration": <settings object as §2.1>, "health": Health, "last_crash": Crash|null}`.
+`health` (§10.1) and `last_crash` (§10.2) are Nycto additions.
 
 `ResourceUsage` (`server/resources.go`, `environment/stats.go`):
 `{"memory_bytes","memory_limit_bytes","cpu_absolute","network":{"rx_bytes","tx_bytes"},"uptime","state","disk_bytes"}`.
@@ -346,7 +346,9 @@ Every arg is a string. Structured data is a JSON **string** inside `args[0]`.
 3. The token's `server_uuid` must equal the socket's server, else `jwt: server uuid mismatch`.
 4. On the first successful auth, the socket is counted toward the 30 limit, listeners
    are registered, and Wings sends `auth success`, then `status` `[<state>]`,
-   then `health` `[<json Health>]` (a Nycto addition, §10.1).
+   then `health` `[<json Health>]` (a Nycto addition, §10.1), then `crash`
+   `[<json Crash>]` if the server is offline because of a crash it wasn't
+   restarted after (a Nycto addition, §10.2).
    When the server is offline (and not installing or transferring) it also sends
    `stats` `[<json ResourceUsage>]`.
 5. **Re-auth** with a fresh JWT: send `auth` again on the same socket. Wings
@@ -394,6 +396,7 @@ Unknown events are ignored.
 | `transfer status` | `[pending\|processing\|cancelling\|cancelled\|failed\|completed\|"failure"\|"success"]` | `transfer.go:SetStatus`, `router_transfer.go`, `router_server_transfer.go`, `deleteServer` | – |
 | `deleted` | none. The payload is `nil`, marshalled as the arg `"null"` | `router_server.go:deleteServer` | – |
 | `health` | `[json Health]` (Nycto addition, §10.1) | `server/health.go:updateHealthLocked`, and once after auth | – |
+| `crash` | `[json Crash]` (Nycto addition, §10.2) | `server/crash.go:handleServerCrash`, and after auth while a crash left the server offline | – |
 | `token expiring` / `token expired` | – | `listeners.go:listenForExpiration` | – |
 | `daemon error` | `["Error Event [<uuid>]: <msg>"]`. The real message is shown only with `admin.websocket.errors`; otherwise a generic message | `websocket.go:SendErrorJson` | see text |
 | `jwt error` | `[reason]` | `validJwt` failures, `SendErrorJson` for JWT errors | – |
@@ -741,3 +744,95 @@ Example messages: `port 25565 is accepting connections`,
   permission is needed. The stock panel ignores the event.
 - **`GET /api/servers/:server`** and **`GET /api/servers`**: the server details
   include `"health": Health` (§3.3).
+
+### 10.2 Crash explanations
+
+Added 2026-10-13. User guide: [`docs/crash-detection.md`](../docs/crash-detection.md).
+Code: `server/crash.go`, `environment/docker/environment.go:Environment.ExitDetails`.
+
+A crash is a transition of `state` from `starting` or `running` to `offline` that
+Wings didn't cause (§4.5, `server/server.go:OnStateChange`). An exit code of 0
+without an out-of-memory kill only counts when the node's
+`system.crash_detection.detect_clean_exit_as_crash` is true, which is the default.
+
+For every crash, Wings sends a `crash` websocket event, args `[<json Crash>]`. It
+keeps the console lines it has always printed (`Exit code: N`, `Out of memory: B`)
+and adds the `message` as one more console line. No permission is needed for the
+event. `last_logs` only contains console output, which any connected client can
+already see.
+
+#### `Crash` object
+
+```json
+{
+  "reason": "out_of_memory",
+  "message": "The server ran out of memory (2 GB limit) and was stopped.",
+  "exit_code": 137,
+  "oom_killed": true,
+  "memory_limit_bytes": 2147483648,
+  "uptime_seconds": 412,
+  "crashed_at": "2026-10-13T20:14:03Z",
+  "last_logs": ["[Server thread/ERROR]: java.lang.OutOfMemoryError: Java heap space"],
+  "restarting": false,
+  "reason_not_restarting": "crash_loop",
+  "crashes_in_window": 3
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `reason` | `out_of_memory`, `killed`, `terminated`, `error` or `clean_exit` (table below) |
+| `message` | A sentence explaining the crash, safe to show to customers |
+| `exit_code` | The process's exit code |
+| `oom_killed` | Docker's out-of-memory flag |
+| `memory_limit_bytes` | The server's `build.memory_limit` in bytes, `0` if unlimited. This is the plan limit, not the container's limit with overhead. |
+| `uptime_seconds` | Seconds between the container starting and stopping, `0` if unknown |
+| `crashed_at` | When Wings detected the crash (RFC 3339, UTC) |
+| `last_logs` | The last `system.crash_detection.log_lines` lines of console output (default 25, at most 100), without ANSI colour codes, each cut at 1000 bytes. Can be an empty array. |
+| `restarting` | Whether Wings is restarting the server now |
+| `reason_not_restarting` | Present only when `restarting` is false: `crash_detection_disabled`, `too_frequent` or `crash_loop` |
+| `crashes_in_window` | Crashes within `system.crash_detection.window`, including this one |
+
+| `reason` | Condition, checked in this order | `message` |
+|---|---|---|
+| `out_of_memory` | `oom_killed` | `The server ran out of memory (<limit> limit) and was stopped.`, or without the limit if unlimited. The limit is shown as `512 MB`, `2 GB` or `1.5 GB` (1 GB = 1024 MB). |
+| `clean_exit` | exit code 0 | `The server stopped on its own without reporting an error.` |
+| `killed` | exit code 137 | `The server was killed (exit code 137). This usually means it ran out of memory or was force-stopped.` |
+| `terminated` | exit code 143 | `The server was stopped by a termination signal (exit code 143).` |
+| `error` | anything else | `The server crashed with exit code N.`, with `(aborted)`, `(floating point error)` or `(segmentation fault)` added for 134, 136 and 139 |
+
+#### Restart decision
+
+Checked in this order. The first match decides:
+
+1. Crash detection is off for the server (`settings.crash_detection_enabled`,
+   which defaults to the node's `system.crash_detection.enabled`): not restarted,
+   `crash_detection_disabled`.
+2. The last crash after which Wings restarted the server was less than
+   `system.crash_detection.timeout` seconds ago (default 60, 0 = off): not
+   restarted, `too_frequent`. This is the upstream rule.
+3. `crashes_in_window` ≥ `system.crash_detection.max_crashes` (default 3, 0 = no
+   limit), counting crashes within `system.crash_detection.window` seconds
+   (default 600) of each other: not restarted, `crash_loop`.
+4. Otherwise the server is restarted, and `restarting` is true.
+
+Every crash is counted, whether or not the server is restarted. The count is
+cleared whenever the server is started by anything other than Wings itself: a
+power action from the panel (`POST /api/servers/:server/power`, websocket
+`set state`), or a start when Wings boots. Restarts that Wings makes after a
+crash or after a failed health check (§10.1, `restart_on_unhealthy`) don't clear
+it. The history is kept in memory only, so restarting Wings also clears it.
+
+Rule 3 is a deliberate change from upstream Wings, which restarts a server that
+crashes more than `timeout` seconds apart forever. It applies to every server,
+including on the stock Pterodactyl panel. `max_crashes: 0` restores the upstream
+behaviour.
+
+#### Where the panel gets it
+
+- **Websocket event `crash`** when the crash happens. It's sent again right after
+  `auth success`, `status` and `health` while the server is offline because of a
+  crash it wasn't restarted after. That ends at the next start.
+- **`last_crash`** in `GET /api/servers/:server` and `GET /api/servers` (§3.3): the
+  most recent crash since Wings started, or `null`. It's kept after the server
+  starts again.

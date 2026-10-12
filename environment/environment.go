@@ -22,6 +22,15 @@ const (
 	ProcessStoppingState = "stopping"
 )
 
+// ExitDetails describes how the last run of a server process ended.
+type ExitDetails struct {
+	ExitCode  uint32
+	OOMKilled bool
+	// StartedAt and FinishedAt are zero if they are not known.
+	StartedAt  time.Time
+	FinishedAt time.Time
+}
+
 // Defines the basic interface that all environments need to implement so that
 // a server can be properly controlled.
 type ProcessEnvironment interface {

@@ -113,6 +113,9 @@ Pterodactyl panel keeps working. Guides are in [`docs/`](docs/README.md):
 - [Health checks](docs/health-checks.md): servers are marked online when they actually accept
   connections (TCP, HTTP or process checks) rather than when the console prints a line,
   with live healthy/unhealthy states.
+- [Crash explanations and crash-loop protection](docs/crash-detection.md): the panel is told why a
+  server crashed ("ran out of memory (2 GB limit)"), with its last console lines, and a server that
+  keeps crashing is no longer restarted forever.
 
 ## Reporting issues
 

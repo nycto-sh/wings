@@ -387,8 +387,10 @@ type APIResponse struct {
 	IsSuspended   bool          `json:"is_suspended"`
 	Utilization   ResourceUsage `json:"utilization"`
 	Configuration Configuration `json:"configuration"`
-	// Health is a Nycto addition that the stock Pterodactyl panel ignores.
-	Health Health `json:"health"`
+	// Health and LastCrash are Nycto additions that the stock Pterodactyl panel
+	// ignores.
+	Health    Health `json:"health"`
+	LastCrash *Crash `json:"last_crash"`
 }
 
 // ToAPIResponse returns the server struct as an API object that can be consumed
@@ -400,5 +402,6 @@ func (s *Server) ToAPIResponse() APIResponse {
 		Utilization:   s.Proc(),
 		Configuration: s.cfg.snapshot(),
 		Health:        s.Health(),
+		LastCrash:     s.LastCrash(),
 	}
 }

@@ -7,6 +7,7 @@ The full panel ⇄ daemon contract, including everything listed here, is in
 | Feature | Added | Guide |
 |---|---|---|
 | Health checks: TCP, HTTP and process checks that decide when a server is ready, with live healthy/unhealthy states | 2026-10-13 | [health-checks.md](health-checks.md) |
+| Crash explanations and crash-loop protection: why a server crashed, as structured data, and no more endless restart loops | 2026-10-13 | [crash-detection.md](crash-detection.md) |
 
 ## Installation and setup
 

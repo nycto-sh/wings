@@ -287,6 +287,20 @@ type CrashDetection struct {
 	// to be automatically restarted, this value is used to prevent servers from
 	// becoming stuck in a boot-loop after multiple consecutive crashes.
 	Timeout int `default:"60" json:"timeout"`
+
+	// MaxCrashes is the number of crashes within Window after which a server is
+	// no longer restarted automatically, so that it cannot crash and restart
+	// forever. Starting the server by hand clears its crash history. Set to 0 to
+	// restart without limit, as upstream Wings does.
+	MaxCrashes int `default:"3" yaml:"max_crashes"`
+
+	// Window is the number of seconds over which crashes are counted for
+	// MaxCrashes.
+	Window int `default:"600" yaml:"window"`
+
+	// LogLines is the number of lines of console output included in the crash
+	// event sent to the Panel.
+	LogLines int `default:"25" yaml:"log_lines"`
 }
 
 type Backups struct {

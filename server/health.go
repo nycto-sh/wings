@@ -376,7 +376,7 @@ func (s *Server) runHealthChecks(ctx context.Context, run uint64) {
 func (s *Server) restartUnhealthy(failures int) {
 	s.PublishConsoleOutputFromDaemon(fmt.Sprintf("Server failed %d health checks in a row, restarting...", failures))
 	s.Log().WithField("failures", failures).Warn("restarting server after it became unhealthy")
-	if err := s.HandlePowerAction(PowerActionRestart, 30); err != nil {
+	if err := s.restartAutomatically(PowerActionRestart, 30); err != nil {
 		s.Log().WithField("error", err).Error("failed to restart unhealthy server")
 	}
 }
