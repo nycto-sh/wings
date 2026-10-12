@@ -25,6 +25,8 @@ type Manager struct {
 	mu      sync.RWMutex
 	client  remote.Client
 	servers []*Server
+	// quotas is set while disk usage is measured with project quotas.
+	quotas *projectQuotas
 }
 
 // NewManager returns a new server manager instance. This will boot up all the
@@ -243,6 +245,10 @@ func (m *Manager) InitServer(uuid string, data remote.ServerConfigurationRespons
 	if _, err := os.Stat(s.Filesystem().Path()); err == nil {
 		s.Filesystem().HasSpaceAvailable(true)
 	}
+
+	// Servers added after start-up get their project quota here, the others
+	// in EnableProjectQuotas.
+	m.setUpProjectQuota(s)
 
 	return s, nil
 }

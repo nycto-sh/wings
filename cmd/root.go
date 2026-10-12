@@ -294,6 +294,9 @@ func rootCmdRun(cmd *cobra.Command, _ []string) {
 		}
 	})
 
+	// Measure disk usage with project quotas where the filesystem has them.
+	manager.EnableProjectQuotas()
+
 	if s, err := cron.Scheduler(cmd.Context(), manager); err != nil {
 		log.WithField("error", err).Fatal("failed to initialize cron system")
 	} else {

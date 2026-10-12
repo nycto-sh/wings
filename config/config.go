@@ -247,6 +247,10 @@ type SystemConfiguration struct {
 	// always use disk_check_interval.
 	AdaptiveDiskCheck bool `default:"true" yaml:"adaptive_disk_check"`
 
+	// DiskQuota measures disk usage with the filesystem's project quotas, where
+	// they are available, instead of counting the files.
+	DiskQuota DiskQuota `yaml:"disk_quota"`
+
 	// ActivitySendInterval is the amount of time that should ellapse between aggregated server activity
 	// being sent to the Panel. By default this will send activity collected over the last minute. Keep
 	// in mind that only a fixed number of activity log entries, defined by ActivitySendCount, will be sent
@@ -278,6 +282,22 @@ type SystemConfiguration struct {
 	Transfers Transfers `yaml:"transfers"`
 
 	OpenatMode string `default:"auto" yaml:"openat_mode"`
+}
+
+// DiskQuota configures measuring disk usage with filesystem project quotas,
+// which are available on XFS mounted with "prjquota", and on ext4 with the
+// "project" and "quota" features mounted with "prjquota".
+//
+// @see docs/disk-usage.md.
+type DiskQuota struct {
+	// Mode is "auto" to use project quotas whenever the filesystem has them
+	// enabled, and to count the files otherwise, or "off" to always count the
+	// files.
+	Mode string `default:"auto" yaml:"mode"`
+
+	// Enforce has the kernel refuse writes that would take a server past its
+	// disk limit, instead of Wings stopping the server after it has gone over.
+	Enforce bool `default:"false" yaml:"enforce"`
 }
 
 type CrashDetection struct {

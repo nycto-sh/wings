@@ -46,6 +46,7 @@ func (fs *Filesystem) MaxDisk() int64 {
 // SetDiskLimit sets the disk space limit for this Filesystem instance.
 func (fs *Filesystem) SetDiskLimit(i int64) {
 	fs.unixFS.SetLimit(i)
+	fs.updateProjectLimit()
 }
 
 // The same concept as HasSpaceAvailable however this will return an error if there is
@@ -105,6 +106,14 @@ func (fs *Filesystem) DiskUsage(allowStaleValue bool) (int64, error) {
 	// A disk check interval of 0 means this functionality is completely disabled.
 	if fs.diskCheckInterval == 0 {
 		return 0, nil
+	}
+
+	// Reading the usage from a project quota is a single system call, so it is
+	// always read again rather than cached.
+	if fs.project.Load() != nil {
+		fs.lookupMu.Lock()
+		defer fs.lookupMu.Unlock()
+		return fs.walkDiskUsage()
 	}
 
 	// Nothing has changed the files without Wings knowing since they were last
@@ -233,7 +242,13 @@ func (fs *Filesystem) walkDiskUsage() (int64, error) {
 	// will have effectively no impact), or there is nothing in the cache, in which case we need to
 	// grab the size of their data directory. This is a taxing operation, so we want to store it in
 	// the cache once we've gotten it.
-	size, err := fs.DirectorySize("/")
+	var size int64
+	var err error
+	if q := fs.project.Load(); q != nil {
+		size, err = fs.projectUsage(q)
+	} else {
+		size, err = fs.DirectorySize("/")
+	}
 
 	// Always record the lookup, even if there is an error, so that a persistent error does not
 	// cause the disk to be walked on every call.

@@ -53,6 +53,10 @@ type Filesystem struct {
 	stoppedAt      atomic.Int64
 	walkStartedAt  atomic.Int64
 
+	// project is set once the disk usage is read from a project quota instead
+	// of by counting the files.
+	project atomic.Pointer[projectQuota]
+
 	isTest bool
 }
 

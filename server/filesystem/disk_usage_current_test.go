@@ -94,4 +94,6 @@ func TestAdaptiveDiskCheckIsOnByDefault(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, cfg.System.AdaptiveDiskCheck)
 	require.Equal(t, int64(150), cfg.System.DiskCheckInterval)
+	require.Equal(t, "auto", cfg.System.DiskQuota.Mode)
+	require.False(t, cfg.System.DiskQuota.Enforce)
 }

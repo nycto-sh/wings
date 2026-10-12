@@ -48,6 +48,7 @@
 | `docs/` | Feature guides for everything Nycto adds or changes, indexed in `docs/README.md` |
 | `server/health.go`, `server/health_probe.go` | Health checks (TCP/HTTP/process, with log matching as the fallback), see `docs/health-checks.md` |
 | `server/filesystem/disk_space.go` | Disk usage: counted only while the process can change files (`ProcessStarted`/`ProcessStopped`), adaptive interval, see `docs/disk-usage.md` |
+| `internal/quota/`, `server/filesystem/project_quota.go`, `server/project_quota.go` | Optional project-quota measuring (XFS/ext4 `prjquota`), auto-detected with fallback to counting. Touches every file once with ioctls as root: security-sensitive |
 | `environment/docker/events.go` | Docker events stream: stops/starts done outside Wings (`OnContainerEvent`, `StoppedExternally`), see `docs/docker-events.md` |
 | `server/crash.go` | Crash detection: structured `crash` event, crash-loop limit (`system.crash_detection.max_crashes`/`window`), see `docs/crash-detection.md` |
 | `scripts/install.sh` | Installer/updater for a fresh Linux server (release download or `--source` build). Keep it shellcheck-clean |
