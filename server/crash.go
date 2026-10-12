@@ -168,6 +168,12 @@ func (s *Server) restartAutomatically(action PowerAction, waitSeconds ...int) er
 	return s.HandlePowerAction(action, waitSeconds...)
 }
 
+// externalStopEnvironment is an environment that can tell when its process was
+// stopped from outside of Wings.
+type externalStopEnvironment interface {
+	StoppedExternally() bool
+}
+
 // exitDetailsEnvironment is an environment that can report when its process
 // started and stopped, in addition to how it exited.
 type exitDetailsEnvironment interface {
@@ -199,6 +205,14 @@ func (s *Server) handleServerCrash() error {
 	// No point in doing anything here if the server isn't currently offline, there
 	// is no reason to do a crash detection event.
 	if s.Environment.State() != environment.ProcessOfflineState {
+		return nil
+	}
+
+	// A server stopped from outside of Wings, for example with "docker stop", was
+	// stopped on purpose, so it is not restarted.
+	if env, ok := s.Environment.(externalStopEnvironment); ok && env.StoppedExternally() {
+		s.Log().Info("server was stopped from outside of wings; not treating it as a crash")
+		s.PublishConsoleOutputFromDaemon("The server was stopped from outside of Wings, so it will not be restarted automatically.")
 		return nil
 	}
 

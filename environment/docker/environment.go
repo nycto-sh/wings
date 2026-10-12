@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"emperror.dev/errors"
@@ -59,6 +60,10 @@ type Environment struct {
 	// running, guarded by mu.
 	reattachedAt    time.Time
 	reattachedCount int
+
+	// externalStop is when the container was last sent a stop signal from
+	// outside of Wings, in Unix nanoseconds, or 0.
+	externalStop atomic.Int64
 }
 
 // New creates a new base Docker environment. The ID passed through will be the

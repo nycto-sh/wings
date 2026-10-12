@@ -238,6 +238,24 @@ func TestCrashWithDetectionDisabled(t *testing.T) {
 	require.Equal(t, CrashError, c.Reason)
 }
 
+// externallyStoppedEnvironment is a crashEnvironment whose container was
+// stopped from outside of Wings.
+type externallyStoppedEnvironment struct {
+	crashEnvironment
+}
+
+func (e *externallyStoppedEnvironment) StoppedExternally() bool { return true }
+
+// A server stopped from outside of Wings is not a crash, and is not restarted.
+func TestExternalStopIsNotACrash(t *testing.T) {
+	useCrashConfig(t, func(*config.CrashDetection) {})
+	s, _ := newCrashServer(t, environment.ExitDetails{ExitCode: 143})
+	s.Environment = &externallyStoppedEnvironment{crashEnvironment{details: environment.ExitDetails{ExitCode: 143}}}
+
+	require.NoError(t, s.handleServerCrash())
+	require.Nil(t, s.LastCrash())
+}
+
 // A clean exit is not a crash when the node is configured that way.
 func TestCleanExitIsNotACrash(t *testing.T) {
 	useCrashConfig(t, func(c *config.CrashDetection) { c.DetectCleanExitAsCrash = false })

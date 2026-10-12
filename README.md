@@ -119,6 +119,8 @@ Pterodactyl panel keeps working. Guides are in [`docs/`](docs/README.md):
 - [Lighter disk usage checking](docs/disk-usage.md): servers start without waiting for their files to
   be counted, offline servers are never re-counted, and servers far from their disk limit are counted
   less often. Works on every VPS with no setup.
+- [Docker events](docs/docker-events.md): a server stopped with `docker stop` stays stopped instead of
+  being "crash-restarted", and one started with `docker start` gets its console and status back.
 
 ## Reporting issues
 

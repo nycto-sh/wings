@@ -51,6 +51,10 @@ func (e *Environment) OnBeforeStart(ctx context.Context) error {
 func (e *Environment) Start(ctx context.Context) error {
 	sawError := false
 
+	// A stop signal sent from outside of Wings before this start does not apply
+	// to this run.
+	e.externalStop.Store(0)
+
 	// If sawError is set to true there was an error somewhere in the pipeline that
 	// got passed up, but we also want to ensure we set the server to be offline at
 	// that point.

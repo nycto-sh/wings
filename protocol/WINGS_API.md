@@ -757,7 +757,11 @@ Added 2026-10-13. User guide: [`docs/crash-detection.md`](../docs/crash-detectio
 Code: `server/crash.go`, `environment/docker/environment.go:Environment.ExitDetails`.
 
 A crash is a transition of `state` from `starting` or `running` to `offline` that
-Wings didn't cause (§4.5, `server/server.go:OnStateChange`). An exit code of 0
+Wings didn't cause (§4.5, `server/server.go:OnStateChange`). A container stopped
+from outside Wings with a stop signal (`docker stop`, `docker kill`, or Docker
+shutting down) isn't a crash. No `crash` event is sent and the server isn't
+restarted (`environment/docker/events.go`, see
+[`docs/docker-events.md`](../docs/docker-events.md)). An exit code of 0
 without an out-of-memory kill only counts when the node's
 `system.crash_detection.detect_clean_exit_as_crash` is true, which is the default.
 

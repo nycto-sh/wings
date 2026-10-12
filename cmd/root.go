@@ -22,6 +22,7 @@ import (
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/multi"
 	cerrdefs "github.com/containerd/errdefs"
+	"github.com/docker/docker/api/types/events"
 	"github.com/gammazero/workerpool"
 	"github.com/mitchellh/colorstring"
 	"github.com/spf13/cobra"
@@ -30,6 +31,7 @@ import (
 
 	"github.com/nycto-sh/wings/config"
 	"github.com/nycto-sh/wings/environment"
+	"github.com/nycto-sh/wings/environment/docker"
 	"github.com/nycto-sh/wings/internal/cron"
 	"github.com/nycto-sh/wings/internal/database"
 	"github.com/nycto-sh/wings/internal/network"
@@ -280,6 +282,17 @@ func rootCmdRun(cmd *cobra.Command, _ []string) {
 			s.CtxCancel()
 		}
 	}()
+
+	// Follow Docker's events for server containers, to notice what is done to
+	// them outside of Wings. This starts after the servers have been restored, so
+	// that their own start-up is not mistaken for that.
+	go docker.WatchEvents(cmd.Context(), func(name string, msg events.Message) {
+		if s, ok := manager.Get(name); ok {
+			if env, ok := s.Environment.(*docker.Environment); ok {
+				env.OnContainerEvent(msg)
+			}
+		}
+	})
 
 	if s, err := cron.Scheduler(cmd.Context(), manager); err != nil {
 		log.WithField("error", err).Fatal("failed to initialize cron system")
