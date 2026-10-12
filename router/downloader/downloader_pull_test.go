@@ -32,6 +32,10 @@ func newPullTestServer(t *testing.T) *server.Server {
 	next := *previous
 	next.System.Data = t.TempDir()
 	next.Api.RemoteDownloadAllowlist = []string{"127.0.0.1"}
+	// Downloaded files are given to the server user, which only root may do
+	// unless it is the user running the tests.
+	next.System.User.Uid = os.Getuid()
+	next.System.User.Gid = os.Getgid()
 	config.Set(&next)
 
 	settings, err := json.Marshal(map[string]string{"uuid": pullTestServerUuid})
