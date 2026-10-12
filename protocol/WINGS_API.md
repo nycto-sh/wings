@@ -601,6 +601,11 @@ Server: `sftp/server.go`. Per-session handler: `sftp/handler.go`.
   XFS filesystem with `prjquota`, existing files were given their project ID, usage was read
   from the kernel, and a write past the limit was refused (XFS reports `ENOSPC`, ext4
   `EDQUOT`).
+- **2026-10-13:** metrics history (§10.3) on node 3. After the server ran for 3 minutes, its
+  history file existed at its fixed size of 564512 bytes and didn't grow.
+  `GET /api/servers/:server/metrics?range=1h` returned 3 one-minute points with CPU
+  average and peak, memory, disk and network values, and `GET /metrics` reported the
+  server's state, health and CPU in the Prometheus format.
 
 ## 9. Open questions (all UNVERIFIED)
 
