@@ -241,6 +241,12 @@ type SystemConfiguration struct {
 	// disk usage is not a concern.
 	DiskCheckInterval int64 `default:"150" yaml:"disk_check_interval"`
 
+	// AdaptiveDiskCheck checks the disk usage of running servers less often while
+	// they are far from their disk limit: every 4 × disk_check_interval below 25%
+	// of the limit or without a limit, and every 2 × below 50%. Set it to false to
+	// always use disk_check_interval.
+	AdaptiveDiskCheck bool `default:"true" yaml:"adaptive_disk_check"`
+
 	// ActivitySendInterval is the amount of time that should ellapse between aggregated server activity
 	// being sent to the Panel. By default this will send activity collected over the last minute. Keep
 	// in mind that only a fixed number of activity log entries, defined by ActivitySendCount, will be sent

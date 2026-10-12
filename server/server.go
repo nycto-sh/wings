@@ -339,6 +339,20 @@ func (s *Server) OnStateChange() {
 
 	s.onHealthStateChange()
 
+	// While the process runs it can change its files without Wings knowing, so
+	// the disk usage has to be counted again. Once it stops, it is counted one
+	// last time and stays accurate until the process runs again.
+	if s.fs != nil {
+		switch st {
+		case environment.ProcessStartingState, environment.ProcessRunningState:
+			s.fs.ProcessStarted()
+		case environment.ProcessOfflineState:
+			if prevState != environment.ProcessOfflineState {
+				s.fs.ProcessStopped()
+			}
+		}
+	}
+
 	// Reset the resource usage to 0 when the process fully stops so that all the UI
 	// views in the Panel correctly display 0.
 	if st == environment.ProcessOfflineState {

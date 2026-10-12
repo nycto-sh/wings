@@ -2,7 +2,6 @@ package filesystem
 
 import (
 	"golang.org/x/sys/unix"
-	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -108,7 +107,13 @@ func (fs *Filesystem) DiskUsage(allowStaleValue bool) (int64, error) {
 		return 0, nil
 	}
 
-	if !fs.lastLookupTime.Get().After(time.Now().Add(time.Second * fs.diskCheckInterval * -1)) {
+	// Nothing has changed the files without Wings knowing since they were last
+	// counted, so the cached value is accurate however old it is.
+	if fs.UsageIsCurrent() {
+		return fs.unixFS.Usage(), nil
+	}
+
+	if !fs.lastLookupTime.Get().After(time.Now().Add(-fs.checkInterval())) {
 		// If we are now allowing a stale response go ahead  and perform the lookup and return the fresh
 		// value. This is a blocking operation to the calling process.
 		if !allowStaleValue {
@@ -135,10 +140,64 @@ func (fs *Filesystem) refreshDiskUsage() (int64, error) {
 	fs.lookupMu.Lock()
 	defer fs.lookupMu.Unlock()
 
-	if fs.lastLookupTime.Get().After(time.Now().Add(time.Second * fs.diskCheckInterval * -1)) {
+	if fs.UsageIsCurrent() || fs.lastLookupTime.Get().After(time.Now().Add(-fs.checkInterval())) {
 		return fs.unixFS.Usage(), nil
 	}
 	return fs.walkDiskUsage()
+}
+
+// checkInterval returns how long a counted disk usage is used for before the
+// files are counted again. With adaptive checking, servers far from their disk
+// limit, or without one, are counted less often, since they need more time to
+// reach it.
+func (fs *Filesystem) checkInterval() time.Duration {
+	base := time.Second * fs.diskCheckInterval
+	if !fs.adaptiveCheck {
+		return base
+	}
+	limit, usage := fs.MaxDisk(), fs.unixFS.Usage()
+	switch {
+	case limit == 0 || usage < limit/4:
+		return base * 4
+	case usage < limit/2:
+		return base * 2
+	}
+	return base
+}
+
+// UsageIsCurrent reports whether the cached disk usage is known to be accurate
+// without counting the files again. That is the case when neither the server's
+// process nor its installer is running, and the files were counted after the
+// last of them stopped.
+func (fs *Filesystem) UsageIsCurrent() bool {
+	return !fs.processRunning.Load() && fs.walkStartedAt.Load() > fs.stoppedAt.Load()
+}
+
+// ProcessStarted tells the filesystem that the server's process or installer
+// is running, and may change the files without going through Wings.
+func (fs *Filesystem) ProcessStarted() {
+	fs.processRunning.Store(true)
+}
+
+// ProcessStopped tells the filesystem that the server's process or installer
+// has stopped, and counts the files once more in the background. After that,
+// the disk usage stays accurate without counting again until the process runs
+// again.
+func (fs *Filesystem) ProcessStopped() {
+	fs.stoppedAt.Store(time.Now().UnixNano())
+	fs.processRunning.Store(false)
+	if fs.diskCheckInterval == 0 || !fs.lookupInProgress.CompareAndSwap(false, true) {
+		// A walk that is already running may have started before the process
+		// stopped, in which case the usage is counted again when it is next
+		// needed.
+		return
+	}
+	go func() {
+		defer fs.lookupInProgress.Store(false)
+		if _, err := fs.updateCachedDiskUsage(); err != nil {
+			log.WithField("root", fs.Path()).WithField("error", err).Warn("failed to update fs disk usage after the server stopped")
+		}
+	}()
 }
 
 // Updates the currently used disk space for a server.
@@ -159,6 +218,9 @@ func (fs *Filesystem) walkDiskUsage() (int64, error) {
 	// we always set this back to "false" when this process is done executing.
 	fs.lookupInProgress.Store(true)
 	defer fs.lookupInProgress.Store(false)
+
+	// Files changed before this point are counted by the walk.
+	started := time.Now().UnixNano()
 
 	// Writes are not blocked while walking the directory, so keep track of the space reserved for
 	// writes that are in progress at any point during the walk.
@@ -188,6 +250,8 @@ func (fs *Filesystem) walkDiskUsage() (int64, error) {
 		// A walk that failed part of the way through has only counted some of the files, so
 		// never lower the usage because of one.
 		usage = max(usage, fs.unixFS.Usage())
+	} else {
+		fs.walkStartedAt.Store(started)
 	}
 	fs.unixFS.SetUsage(usage)
 	fs.walking = false
@@ -204,7 +268,8 @@ func (fs *Filesystem) DirectorySize(root string) (int64, error) {
 		return 0, err
 	}
 
-	var hardLinks []uint64
+	// Inodes with more than one name that have already been counted.
+	hardLinks := make(map[uint64]struct{})
 
 	var size atomic.Int64
 	err = fs.unixFS.WalkDirat(dirfd, name, func(dirfd int, name, _ string, d ufs.DirEntry, err error) error {
@@ -231,13 +296,11 @@ func (fs *Filesystem) DirectorySize(root string) (int64, error) {
 
 		var sysFileInfo = info.Sys().(*unix.Stat_t)
 		if sysFileInfo.Nlink > 1 {
-			// Hard links have the same inode number
-			if slices.Contains(hardLinks, sysFileInfo.Ino) {
-				// Don't add hard links size twice
+			// Hard links have the same inode number, so don't add their size twice.
+			if _, ok := hardLinks[sysFileInfo.Ino]; ok {
 				return nil
-			} else {
-				hardLinks = append(hardLinks, sysFileInfo.Ino)
 			}
+			hardLinks[sysFileInfo.Ino] = struct{}{}
 		}
 
 		size.Add(info.Size())

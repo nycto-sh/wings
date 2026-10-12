@@ -197,7 +197,11 @@ func (s *Server) onBeforeStart() error {
 	if s.DiskSpace() <= 0 {
 		s.Filesystem().HasSpaceAvailable(true)
 	} else {
-		s.PublishConsoleOutputFromDaemon("Checking server disk space usage, this could take a few seconds...")
+		// The usage is already known without counting the files when nothing has
+		// changed them without Wings knowing since the server last stopped.
+		if !s.Filesystem().UsageIsCurrent() {
+			s.PublishConsoleOutputFromDaemon("Checking server disk space usage, this could take a few seconds...")
+		}
 		if err := s.Filesystem().HasSpaceErr(false); err != nil {
 			return err
 		}

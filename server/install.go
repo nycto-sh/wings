@@ -45,7 +45,10 @@ func (s *Server) install(reinstall bool) error {
 		// install process being executed.
 		s.Events().Publish(InstallStartedEvent, "")
 
+		// The installer changes the server's files without Wings knowing.
+		s.fs.ProcessStarted()
 		err = s.internalInstall()
+		s.fs.ProcessStopped()
 	} else {
 		s.Log().Info("server configured to skip running installation scripts for this egg, not executing process")
 	}

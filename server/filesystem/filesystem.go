@@ -40,7 +40,18 @@ type Filesystem struct {
 	lastLookupTime    *usageLookupTime
 	lookupInProgress  atomic.Bool
 	diskCheckInterval time.Duration
+	adaptiveCheck     bool
 	denylist          *ignore.GitIgnore
+
+	// Everything except the server's own process and its installer changes the
+	// files through Wings, which keeps the usage up to date as it does. While
+	// neither is running, a walk that started after the last of them stopped is
+	// therefore still accurate. processRunning is set while one is running,
+	// stoppedAt is when one last stopped, and walkStartedAt is when the last
+	// successful walk started, both in Unix nanoseconds.
+	processRunning atomic.Bool
+	stoppedAt      atomic.Int64
+	walkStartedAt  atomic.Int64
 
 	isTest bool
 }
@@ -60,6 +71,7 @@ func New(root string, size int64, denylist []string) (*Filesystem, error) {
 		unixFS: quota,
 
 		diskCheckInterval: time.Duration(config.Get().System.DiskCheckInterval),
+		adaptiveCheck:     config.Get().System.AdaptiveDiskCheck,
 		lastLookupTime:    &usageLookupTime{},
 		denylist:          ignore.CompileIgnoreLines(denylist...),
 	}, nil

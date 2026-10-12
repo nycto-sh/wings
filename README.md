@@ -116,6 +116,9 @@ Pterodactyl panel keeps working. Guides are in [`docs/`](docs/README.md):
 - [Crash explanations and crash-loop protection](docs/crash-detection.md): the panel is told why a
   server crashed ("ran out of memory (2 GB limit)"), with its last console lines, and a server that
   keeps crashing is no longer restarted forever.
+- [Lighter disk usage checking](docs/disk-usage.md): servers start without waiting for their files to
+  be counted, offline servers are never re-counted, and servers far from their disk limit are counted
+  less often. Works on every VPS with no setup.
 
 ## Reporting issues
 

@@ -47,6 +47,7 @@
 | `protocol/` | Protocol documentation for the fork. §10 holds the Nycto additions |
 | `docs/` | Feature guides for everything Nycto adds or changes, indexed in `docs/README.md` |
 | `server/health.go`, `server/health_probe.go` | Health checks (TCP/HTTP/process, with log matching as the fallback), see `docs/health-checks.md` |
+| `server/filesystem/disk_space.go` | Disk usage: counted only while the process can change files (`ProcessStarted`/`ProcessStopped`), adaptive interval, see `docs/disk-usage.md` |
 | `server/crash.go` | Crash detection: structured `crash` event, crash-loop limit (`system.crash_detection.max_crashes`/`window`), see `docs/crash-detection.md` |
 | `scripts/install.sh` | Installer/updater for a fresh Linux server (release download or `--source` build). Keep it shellcheck-clean |
 | `contrib/` | `nycto-wings.service` systemd unit. `scripts/install.sh` embeds a copy, so keep the two in sync |
