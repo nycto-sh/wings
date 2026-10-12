@@ -288,7 +288,8 @@ directory missing.
 2. **Source → destination**: `POST <url>` (`server/transfer/source.go:Transfer.PushArchiveToTarget`):
    - `Authorization: <token>`. The **raw** `token` value is used as the header.
      The destination (`postTransfers`) expects `Bearer <jwt>`, so the panel
-     must include the `Bearer ` prefix in `token`. (Panel side **UNVERIFIED**.)
+     must include the `Bearer ` prefix in `token`. Confirmed: a transfer from
+     stock Wings to Nycto Wings worked with Pterodactyl panel 1.15.1 (§8).
    - `Content-Type: multipart/form-data`. Part `archive` (`archive.tar.gz`)
      comes first, then field `checksum` = hex SHA-256 of the archive bytes.
    - The source requires `200`. Progress is sent as `transfer logs` WS events every 5 s.
@@ -420,8 +421,9 @@ Each `HasPermission` call also re-checks the denylist.
 
 The scope check came from upstream commit `d0ddc80` ("Verify scope of tokens
 provided by panel", 2026-05-23). A stock panel that predates it won't send
-`scope`, and every JWT route would reject its tokens. Which panel version
-adds `scope`: **UNVERIFIED**.
+`scope`, and every JWT route would reject its tokens. Pterodactyl panel
+**1.15.1** sends it (§8). Which earlier version first added it: **UNVERIFIED**.
+Treat 1.15.1 as the minimum supported stock panel version.
 
 ### 5.2 Token types
 
@@ -531,12 +533,16 @@ Server: `sftp/server.go`. Per-session handler: `sftp/handler.go`.
   Nycto node passed the same checks, and the stock node's server kept working.
 - **2026-10-12:** after the module rename to `github.com/nycto-sh/wings`, `go test ./...`
   passed on the VPS, and the rebuilt `nycto-wings` came back online on node 3.
+- **2026-10-12:** the test panel is **Pterodactyl 1.15.1**, so every result above is against that version.
+- **2026-10-12:** a server **transfer** from the stock Wings node to the Nycto Wings node
+  (same VPS) completed through the panel. That confirms the panel's transfer `token`
+  includes the `Bearer ` prefix, the panel signs the transfer JWT with the destination
+  node's secret, and the archive/checksum stream between the two daemons is compatible.
 
 ## 9. Open questions (all UNVERIFIED)
 
 - Exact `exp` lifetimes and `iss`/`aud` values the stock panel puts in each JWT type.
-- Whether **older** stock panels include `scope`, `user_uuid` and `iat`. The panel tested on 2026-10-12 does (§8).
+- Whether stock panels **older than 1.15.1** include `scope`, `user_uuid` and `iat`. 1.15.1 does (§8).
 - Whether the stock panel's `/api/remote/*` routes care about the `Accept: application/vnd.pterodactyl.v1+json` or `User-Agent` headers. Keep both unchanged until this is checked.
-- Whether the panel's transfer `token` field includes the `Bearer ` prefix. The code requires it.
 - Whether `jwt.Verify` (gbrlsnchs/jwt v3) enforces the header `alg`.
 - Whether any panel still calls `POST /api/servers/:server/ws/deny`, or handles `POST /servers/{uuid}/archive` (Wings never calls it).
