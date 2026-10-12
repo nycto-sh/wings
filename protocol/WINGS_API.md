@@ -577,6 +577,12 @@ Server: `sftp/server.go`. Per-session handler: `sftp/handler.go`.
 - **2026-10-13:** with health checks (§10.1) added, `go test ./...` passed on the VPS,
   including all health tests, and node 3 behaved normally with the stock panel, which
   uses the `log` fallback.
+- **2026-10-13:** health checks on a real server on node 3, assigned from the node's
+  configuration file: `process` went healthy 2 s after start; `tcp` against a port
+  nothing listened on went unhealthy after `start_period` without restarting; `http`
+  against a listening server went healthy 2 s after a restart from the panel
+  ("GET / on port 30101 returned 200"), which confirms Wings reaches the container
+  directly. The paused-container (frozen server) case wasn't observed yet.
 
 ## 9. Open questions (all UNVERIFIED)
 
