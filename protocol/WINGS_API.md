@@ -586,6 +586,12 @@ Server: `sftp/server.go`. Per-session handler: `sftp/handler.go`.
   against a listening server went healthy 2 s after a restart from the panel
   ("GET / on port 30101 returned 200"), which confirms Wings reaches the container
   directly. The paused-container (frozen server) case wasn't observed yet.
+- **2026-10-13:** crash explanations (§10.2) on node 3. A script exiting with code 1 every 70 s
+  was restarted twice, then stopped with `crash_loop` and `crashes_in_window: 3`.
+  `last_crash` showed `uptime_seconds: 70` and the last console lines. A script exhausting
+  a 2 GB limit (container limit 2469606195 bytes with overhead) produced
+  "The server ran out of memory (2 GB limit) and was stopped.", was restarted once, and
+  then stopped with `too_frequent` when it crashed again within 60 s.
 
 ## 9. Open questions (all UNVERIFIED)
 
