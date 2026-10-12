@@ -10,6 +10,7 @@ The full panel ⇄ daemon contract, including everything listed here, is in
 | Crash explanations and crash-loop protection: why a server crashed, as structured data, and no more endless restart loops | 2026-10-13 | [crash-detection.md](crash-detection.md) |
 | Disk usage checking: no counting before starts or while offline, less counting with plenty of room, on every VPS; instant measuring with project quotas where the disk supports them | 2026-10-13 | [disk-usage.md](disk-usage.md) |
 | Docker events: `docker stop` / `docker start` run by hand are handled correctly instead of looking like crashes or going unnoticed | 2026-10-13 | [docker-events.md](docker-events.md) |
+| Metrics history and Prometheus: a week of CPU, memory, disk and network per server for graphs, and a `/metrics` endpoint for monitoring | 2026-10-13 | [metrics.md](metrics.md) |
 
 ## Installation and setup
 

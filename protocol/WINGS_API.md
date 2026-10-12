@@ -236,6 +236,7 @@ Unknown server, denylisted token, reused `unique_id`, or wrong scope →
 | `POST /api/servers` | `router/router_system.go:postCreateServer` | `{"uuid": "<uuidv4>", "start_on_completion": bool}` (`server/installer/installer.go:ServerDetails`) | `202`. Also `409` if it exists, or `422` if the UUID is invalid | Create a server. Wings pulls its config from the panel (§2 #3), then installs in the background |
 | `DELETE /api/transfers/:server` | `router/router_transfer.go:deleteTransfer` | – | `202` / `409` | Cancel an **incoming** transfer |
 | `POST /api/deauthorize-user` | `router/router_system.go:postDeauthorizeUser` | `{"user": "<user uuid>", "servers": ["<uuid>", ...]}`. An empty `servers` means every server | `204` | Revokes the user's JWTs issued until now (`tokens.DenyForServer`), closes their websockets and SFTP sessions |
+| `GET /metrics` | `router/router_metrics.go:getPrometheusMetrics` | – | Prometheus text format | Nycto addition (§10.3): current usage of every server, for Prometheus |
 
 `server.APIResponse` (`server/server.go`):
 `{"state": "offline|starting|running|stopping", "is_suspended": bool, "utilization": ResourceUsage, "configuration": <settings object as §2.1>, "health": Health, "last_crash": Crash|null}`.
@@ -251,6 +252,7 @@ Unknown server, denylisted token, reused `unique_id`, or wrong scope →
 | `GET ""` | `router/router_server.go:getServer` | – | `server.APIResponse` | Server details |
 | `DELETE ""` | `router/router_server.go:deleteServer` | – | `204` | Suspend, emit `deleted` (and `transfer status: completed` if transferring), destroy the container, delete files in the background, unregister |
 | `GET /logs?size=` | `getServerLogs` | `size` 1–100, default 100 | `{"data": ["line", ...]}` | Container log tail |
+| `GET /metrics?range=&from=&to=&points=` | `router/router_metrics.go:getServerMetrics` | – | `{"interval","from","to","points":[...]}` | Nycto addition (§10.3): resource usage history for graphs |
 | `POST /power` | `postServerPower` | `{"action":"start\|stop\|restart\|kill","wait_seconds": int}`. `wait_seconds` outside 0–300 becomes 30 | `202`. `422` for a bad action, `400` if suspended and the action is start/restart | Async power action |
 | `POST /commands` | `postServerCommands` | `{"commands": ["..."]}` | `204`, or `502` if not running | Send console commands |
 | `POST /install` | `postServerInstall` | – | `202` | Sync, then install in the background |
@@ -853,3 +855,62 @@ behaviour.
 - **`last_crash`** in `GET /api/servers/:server` and `GET /api/servers` (§3.3): the
   most recent crash since Wings started, or `null`. It's kept after the server
   starts again.
+
+### 10.3 Metrics history and Prometheus
+
+Added 2026-10-13. User guide: [`docs/metrics.md`](../docs/metrics.md).
+Code: `internal/metrics/ring.go`, `server/metrics.go`, `server/prometheus.go`,
+`router/router_metrics.go`.
+
+#### `GET /api/servers/:server/metrics`
+
+Auth: node token (`Authorization: Bearer <token>`, §1.2), like the other
+per-server routes. Returns the server's resource usage history, summarized into
+points for a graph. Answers `404 {"error": ...}` when
+`system.metrics.enabled` is false.
+
+| Query | Default | Meaning |
+|---|---|---|
+| `range` | `24h` | Duration back from `to`: a Go duration (`90m`, `6h`, `24h`) or days (`7d`) |
+| `from`, `to` | `to` = now | Unix seconds. `from` overrides `range` |
+| `points` | 300 | Most points returned, 1–1000 |
+
+Invalid values return `400 {"error": ...}`. `from` is raised to the start of the
+history kept (`interval × samples` before `to`).
+
+```json
+{
+  "interval": 60,
+  "from": 1791756000,
+  "to": 1791842400,
+  "points": [
+    {"time": 1791756000, "span": 300, "cpu_avg": 12.5, "cpu_max": 87.25,
+     "memory_avg_bytes": 1073741824, "memory_max_bytes": 1610612736,
+     "disk_bytes": 5368709120, "network_rx_bytes": 104857600, "network_tx_bytes": 52428800}
+  ]
+}
+```
+
+- Samples are taken every `interval` seconds (default 60), on the clock
+  (whole minutes), for each server that reported usage during that interval.
+  Intervals without a sample, such as while the server was offline, produce no
+  point. Expect gaps.
+- Each point covers `span` seconds from `time`. `span` is a whole number of
+  intervals, and spans start on sample times. `cpu_avg` and
+  `memory_avg_bytes` are averaged over the span, `cpu_max` and
+  `memory_max_bytes` are its highest values, `disk_bytes` is its last value, and
+  `network_*_bytes` are the bytes transferred during the span. CPU: 100 = one
+  core, rounded to 2 decimals.
+- The number of points is at most `points`, and lower when there are fewer
+  samples.
+
+#### `GET /metrics`
+
+Auth: node token. Prometheus text exposition format 0.0.4
+(`text/plain; version=0.0.4`). Answers 404 when `system.metrics.prometheus`
+is false. It lists the metric families in `docs/metrics.md`: node-level
+`nycto_wings_info` and `nycto_wings_servers`, and per server, labelled `server`
+(UUID) and `name`, `nycto_server_state{state}`, `nycto_server_health{status}`,
+CPU, memory, disk, network, uptime, suspension and the last crash time.
+
+Neither endpoint is used by the stock Pterodactyl panel.

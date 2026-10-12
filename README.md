@@ -121,6 +121,9 @@ Pterodactyl panel keeps working. Guides are in [`docs/`](docs/README.md):
   less often. Works on every VPS with no setup.
 - [Docker events](docs/docker-events.md): a server stopped with `docker stop` stays stopped instead of
   being "crash-restarted", and one started with `docker start` gets its console and status back.
+- [Metrics history and Prometheus](docs/metrics.md): a rolling week of CPU, memory, disk and network
+  per server in a small fixed-size file, for graphs in the panel, plus a `/metrics` endpoint for
+  Prometheus.
 
 ## Reporting issues
 

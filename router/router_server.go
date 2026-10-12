@@ -239,6 +239,7 @@ func deleteServer(c *gin.Context) {
 	middleware.ExtractManager(c).Remove(func(server *server.Server) bool {
 		return server.ID() == s.ID()
 	})
+	s.RemoveMetricsHistory()
 
 	c.Status(http.StatusNoContent)
 }

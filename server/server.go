@@ -20,6 +20,7 @@ import (
 	"github.com/nycto-sh/wings/config"
 	"github.com/nycto-sh/wings/environment"
 	"github.com/nycto-sh/wings/events"
+	"github.com/nycto-sh/wings/internal/metrics"
 	"github.com/nycto-sh/wings/remote"
 	"github.com/nycto-sh/wings/server/filesystem"
 	"github.com/nycto-sh/wings/system"
@@ -47,6 +48,11 @@ type Server struct {
 
 	// Tracks the health of the server and runs its health checks.
 	health healthMonitor
+
+	// Collects the resource usage for the server's metrics history.
+	metricsAcc  metricsAccumulator
+	metricsMu   sync.Mutex
+	metricsRing *metrics.Ring
 
 	resources   ResourceUsage
 	Environment environment.ProcessEnvironment `json:"-"`
@@ -351,6 +357,10 @@ func (s *Server) OnStateChange() {
 				s.fs.ProcessStopped()
 			}
 		}
+	}
+
+	if st == environment.ProcessOfflineState && prevState != environment.ProcessOfflineState {
+		s.resetNetworkCounters()
 	}
 
 	// Reset the resource usage to 0 when the process fully stops so that all the UI

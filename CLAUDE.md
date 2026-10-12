@@ -50,6 +50,7 @@
 | `server/filesystem/disk_space.go` | Disk usage: counted only while the process can change files (`ProcessStarted`/`ProcessStopped`), adaptive interval, see `docs/disk-usage.md` |
 | `internal/quota/`, `server/filesystem/project_quota.go`, `server/project_quota.go` | Optional project-quota measuring (XFS/ext4 `prjquota`), auto-detected with fallback to counting. Touches every file once with ioctls as root: security-sensitive |
 | `environment/docker/events.go` | Docker events stream: stops/starts done outside Wings (`OnContainerEvent`, `StoppedExternally`), see `docs/docker-events.md` |
+| `internal/metrics/`, `server/metrics.go`, `server/prometheus.go`, `router/router_metrics.go` | Metrics history (fixed-size ring file per server) and Prometheus `/metrics`, see `docs/metrics.md` |
 | `server/crash.go` | Crash detection: structured `crash` event, crash-loop limit (`system.crash_detection.max_crashes`/`window`), see `docs/crash-detection.md` |
 | `scripts/install.sh` | Installer/updater for a fresh Linux server (release download or `--source` build). Keep it shellcheck-clean |
 | `contrib/` | `nycto-wings.service` systemd unit. `scripts/install.sh` embeds a copy, so keep the two in sync |

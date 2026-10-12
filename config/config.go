@@ -251,6 +251,10 @@ type SystemConfiguration struct {
 	// they are available, instead of counting the files.
 	DiskQuota DiskQuota `yaml:"disk_quota"`
 
+	// Metrics keeps a history of each server's resource usage, and serves
+	// metrics for Prometheus.
+	Metrics Metrics `yaml:"metrics"`
+
 	// ActivitySendInterval is the amount of time that should ellapse between aggregated server activity
 	// being sent to the Panel. By default this will send activity collected over the last minute. Keep
 	// in mind that only a fixed number of activity log entries, defined by ActivitySendCount, will be sent
@@ -282,6 +286,47 @@ type SystemConfiguration struct {
 	Transfers Transfers `yaml:"transfers"`
 
 	OpenatMode string `default:"auto" yaml:"openat_mode"`
+}
+
+// Metrics configures the history of each server's resource usage, kept in a
+// file of fixed size per server in <root_directory>/metrics, and the metrics
+// served to Prometheus.
+//
+// @see docs/metrics.md.
+type Metrics struct {
+	// Enabled keeps the history.
+	Enabled bool `default:"true" yaml:"enabled"`
+
+	// Interval is the number of seconds each sample covers, from 10 to 3600.
+	Interval int `default:"60" yaml:"interval"`
+
+	// Retention is the number of hours of history kept, from 1 to 8760. The
+	// history is limited to 100000 samples per server.
+	Retention int `default:"168" yaml:"retention"`
+
+	// Prometheus serves the current resource usage of every server at /metrics,
+	// to requests with the node's token.
+	Prometheus bool `default:"true" yaml:"prometheus"`
+}
+
+// Limits on the history of each server.
+const (
+	maxMetricsSamples = 100000
+)
+
+// MetricsSettings returns the interval of the samples in seconds and the
+// number of samples kept, with the limits applied.
+func (m Metrics) MetricsSettings() (interval int64, samples int64) {
+	interval = int64(min(max(m.Interval, 10), 3600))
+	if m.Interval <= 0 {
+		interval = 60
+	}
+	retention := int64(min(max(m.Retention, 1), 8760))
+	if m.Retention <= 0 {
+		retention = 168
+	}
+	samples = min(retention*3600/interval, maxMetricsSamples)
+	return interval, samples
 }
 
 // DiskQuota configures measuring disk usage with filesystem project quotas,
