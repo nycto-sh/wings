@@ -443,10 +443,12 @@ Each also embeds the registered claims (`jwt.Payload`: `iss`, `sub`, `aud`,
   The cache is per-process, so it resets when Wings restarts.
 - **Transfer token signer:** the destination verifies with **its own**
   node token, so the panel has to sign the transfer JWT with the
-  **destination** node's secret. (Required by the code; the panel side is **UNVERIFIED**.)
-- **Expiry lengths** come from the panel and aren't visible here: **UNVERIFIED**.
-- **Websocket JTI:** a code comment says the panel derives it as
-  `MD5(user.id + server.uuid)` (`router/tokens/websocket.go`): **UNVERIFIED**.
+  **destination** node's secret. Confirmed by a working transfer on Pterodactyl 1.15.1 (§8).
+- **JTI:** a code comment in `router/tokens/websocket.go` says the panel derives it as
+  `MD5(user.id + server.uuid)`. That comment is **outdated**. Pterodactyl 1.15.1 sends a
+  64-hex-character `jti` (SHA-256-sized) that is the same in the websocket and download tokens
+  for one user and server, so it identifies the user+server pair, not a single token (§5.4).
+  Its exact derivation: **UNVERIFIED**.
 
 ### 5.3 Revocation / denylist
 
@@ -463,6 +465,31 @@ and backup tokens. A token is rejected if any of these holds:
    with a deny time ≥ `iat`.
 
 All denylist state is in memory only.
+
+### 5.4 Tokens observed from Pterodactyl 1.15.1
+
+Payloads decoded from tokens issued by the test panel on 2026-10-13. Signatures weren't
+captured. Values are shown as types, not the real IDs.
+
+| Claim | Websocket token | File-download token |
+|---|---|---|
+| `iss` | panel URL, e.g. `https://panel.example.com` | same |
+| `aud` | one-element array: the node's `scheme://fqdn:port`, e.g. `["https://node.example.com:8081"]` | same |
+| `iat` | issue time | same |
+| `nbf` | `iat − 300` (backdated 5 min for clock drift) | same |
+| `exp` | `iat + 600` (**10 min**) | `iat + 900` (**15 min**) |
+| `jti` | 64 hex chars, per user+server | same value as the websocket token |
+| `scope` | `"websocket"` | `"file-download"` |
+| `server_uuid` | server UUID | same |
+| `user_uuid` | user UUID | same |
+| `unique_id` | 16-char random string (Wings ignores it for websockets) | 16-char random string (one-time-use key) |
+| `permissions` | e.g. `["*", "admin.websocket.errors", "admin.websocket.install", "admin.websocket.transfer"]` for a root admin | – |
+| `file_path` | – | path of the file, e.g. `"/main.py"` |
+
+A panel that issues tokens like these is accepted by Wings. Wings itself only checks the
+signature, `exp`, `scope`, the denylist claims (`iat`, `server_uuid`, `user_uuid`) and the
+type-specific claims. It does not check `iss`, `aud` or `nbf` (§5.1). The upload and
+backup-download tokens weren't sampled: their lifetimes and extra claims are **UNVERIFIED**.
 
 ---
 
@@ -541,7 +568,7 @@ Server: `sftp/server.go`. Per-session handler: `sftp/handler.go`.
 
 ## 9. Open questions (all UNVERIFIED)
 
-- Exact `exp` lifetimes and `iss`/`aud` values the stock panel puts in each JWT type.
+- Lifetimes and claims of the stock panel's **upload** and **backup-download** tokens. The websocket and file-download tokens are documented in §5.4.
 - Whether stock panels **older than 1.15.1** include `scope`, `user_uuid` and `iat`. 1.15.1 does (§8).
 - Whether the stock panel's `/api/remote/*` routes care about the `Accept: application/vnd.pterodactyl.v1+json` or `User-Agent` headers. Keep both unchanged until this is checked.
 - Whether `jwt.Verify` (gbrlsnchs/jwt v3) enforces the header `alg`.

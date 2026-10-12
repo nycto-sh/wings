@@ -22,7 +22,8 @@ var wingsBootTime = time.Now()
 // is the same as or before this time should be considered invalid.
 //
 // This is used to allow the Panel to revoke tokens en-masse for a given user & server
-// combination since the JTI for tokens is just MD5(user.id + server.uuid). When a server
+// combination since the Panel derives the JTI from the user and server, so it is the same
+// for every token issued to that pair (see protocol/WINGS_API.md §5.4). When a server
 // is booted this listing is fetched from the panel and the Websocket is dynamically updated.
 //
 // deprecated: prefer use of userDenylist
