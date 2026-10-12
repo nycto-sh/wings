@@ -592,6 +592,13 @@ Server: `sftp/server.go`. Per-session handler: `sftp/handler.go`.
   a 2 GB limit (container limit 2469606195 bytes with overhead) produced
   "The server ran out of memory (2 GB limit) and was stopped.", was restarted once, and
   then stopped with `too_frequent` when it crashed again within 60 s.
+- **2026-10-13:** disk usage, Docker events and project quotas on the VPS. `go test ./...` passed.
+  A server start no longer printed "Checking server disk space usage". `docker stop` on a
+  running server's container left it offline with "stopped from outside of Wings" and no
+  crash, and `docker start` brought it back as `running` with a live console. On a loop-mounted
+  XFS filesystem with `prjquota`, existing files were given their project ID, usage was read
+  from the kernel, and a write past the limit was refused (XFS reports `ENOSPC`, ext4
+  `EDQUOT`).
 
 ## 9. Open questions (all UNVERIFIED)
 

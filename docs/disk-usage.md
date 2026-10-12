@@ -110,7 +110,8 @@ files take up less.
 By default the quota is only used to measure, and the limit works as always: Wings stops a server
 that goes over its disk limit. With `enforce: true`, the kernel itself refuses any write that would
 take the server past its limit, the moment it happens. The server keeps running, and the game sees
-"disk quota exceeded" errors instead of being stopped.
+write errors instead of being stopped: "No space left on device" on XFS, or "Disk quota exceeded"
+on ext4.
 
 ```yaml
 system:

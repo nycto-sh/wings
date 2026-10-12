@@ -112,12 +112,13 @@ func TestProjectQuota(t *testing.T) {
 		t.Fatalf("expected at least 1 MiB to be used, got %d", used)
 	}
 
-	// With a limit, the kernel refuses to write past it.
+	// With a limit, the kernel refuses to write past it. ext4 reports this as
+	// EDQUOT, and XFS reports a project quota as ENOSPC.
 	if err := SetLimit(fd, id, 2<<20); err != nil {
 		t.Fatal(err)
 	}
 	err = os.WriteFile(filepath.Join(dir, "b"), make([]byte, 4<<20), 0o600)
-	if !errors.Is(err, unix.EDQUOT) {
-		t.Fatalf("expected writing past the limit to fail with EDQUOT, got %v", err)
+	if !errors.Is(err, unix.EDQUOT) && !errors.Is(err, unix.ENOSPC) {
+		t.Fatalf("expected writing past the limit to fail with EDQUOT or ENOSPC, got %v", err)
 	}
 }
