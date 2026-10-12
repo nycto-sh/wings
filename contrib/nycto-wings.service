@@ -1,3 +1,4 @@
+# Keep this in sync with the copy in scripts/install.sh.
 [Unit]
 Description=Nycto Wings Daemon
 After=docker.service

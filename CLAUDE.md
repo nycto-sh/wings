@@ -37,7 +37,7 @@
 | `environment/` | Environment abstraction plus Docker network setup (`docker.go`) |
 | `environment/docker/` | Docker implementation: container create/attach/power/stats/cgroup burst |
 | `sftp/` | Built-in SSH/SFTP server, panel-backed auth, per-op permissions |
-| `internal/ufs/` | Low-level "unix filesystem" with openat/openat2-based path containment (has its own BSD `LICENSE`/`go.LICENSE`) |
+| `internal/ufs/` | Low-level "unix filesystem" with openat/openat2-based path containment (own licenses: MIT `LICENSE`, plus BSD-3-Clause `go.LICENSE` for the Go-derived files listed in its README) |
 | `internal/network/` | Internal-IP detection, allowlists, connection-limiting listener |
 | `internal/database/`, `internal/models/` | SQLite (gorm) activity store, `<root>/wings.db` |
 | `internal/cron/` | Activity / SFTP-event delivery to the panel |
@@ -45,6 +45,9 @@
 | `events/`, `system/` | Event bus, sinks, locks, atomics, version (`system.Version`) |
 | `loggers/cli/` | apex/log CLI handler |
 | `protocol/` | Protocol documentation for the fork |
+| `scripts/install.sh` | Installer/updater for a fresh Linux server (release download or `--source` build). Keep it shellcheck-clean |
+| `contrib/` | `nycto-wings.service` systemd unit. `scripts/install.sh` embeds a copy, so keep the two in sync |
+| `.github/assets/` | Nycto logo/icon (`*-dark.png` = white for dark backgrounds, `*-light.png` = dark), and `originals/` with the source artwork |
 
 ### Fork names
 

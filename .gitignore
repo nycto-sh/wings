@@ -38,6 +38,7 @@
 # The built executable
 wings
 wings.exe
+/nycto-wings
 
 # IDE/Editor files (VS Code)
 /.vscode

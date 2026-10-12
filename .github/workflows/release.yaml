@@ -26,6 +26,7 @@ jobs:
           chmod 755 dist/nycto-wings_linux_amd64
           GOARCH=arm64 go build -o dist/nycto-wings_linux_arm64 -v -trimpath -ldflags="-s -w -X github.com/nycto-sh/wings/system.Version=${{ github.ref_name }}" github.com/nycto-sh/wings
           chmod 755 dist/nycto-wings_linux_arm64
+          (cd dist && sha256sum nycto-wings_linux_* > checksums.txt)
 
       - name: Create release branch
         env:
