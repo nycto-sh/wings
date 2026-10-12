@@ -226,7 +226,7 @@ func (s *Server) beginHealthRun() {
 
 func (s *Server) beginHealthRunLocked() {
 	s.stopHealthRunLocked()
-	s.health.ctx, s.health.cancel = context.WithCancel(s.Context())
+	s.health.ctx, s.health.cancel = context.WithCancel(s.Context()) //nolint:gosec // cancel is kept and called by stopHealthRunLocked when the run ends
 
 	hc := s.healthCheck()
 	msg := "waiting for the server to report that it has started"

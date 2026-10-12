@@ -36,6 +36,9 @@ const LogFileName = "nycto-wings.log"
 // ServiceName is the name of the systemd service Wings is expected to run as.
 const ServiceName = "nycto-wings.service"
 
+// logrotatePath is the logrotate configuration Wings writes for its log.
+const logrotatePath = "/etc/logrotate.d/nycto-wings"
+
 // DefaultTLSConfig sets sane defaults to use when configuring the internal
 // webserver to listen for public connections.
 //
@@ -915,8 +918,7 @@ func EnableLogRotation() error {
 	} else if (err != nil && os.IsNotExist(err)) || !st.IsDir() {
 		return nil
 	}
-	p := "/etc/logrotate.d/" + strings.TrimSuffix(ServiceName, ".service")
-	if _, err := os.Stat(p); err == nil || !os.IsNotExist(err) {
+	if _, err := os.Stat(logrotatePath); err == nil || !os.IsNotExist(err) {
 		return err
 	}
 
@@ -924,7 +926,7 @@ func EnableLogRotation() error {
 	// If we've gotten to this point it means the logrotate directory exists on the system
 	// but there is not a file for wings already. In that case, let us write a new file to
 	// it so files can be rotated easily.
-	f, err := os.Create(p)
+	f, err := os.Create(logrotatePath)
 	if err != nil {
 		return err
 	}
