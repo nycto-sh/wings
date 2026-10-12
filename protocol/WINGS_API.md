@@ -525,6 +525,10 @@ Server: `sftp/server.go`. Per-session handler: `sftp/handler.go`.
   create and download. This confirms in practice that the stock panel sends tokens the
   fork accepts (`scope`, `user_uuid`, `iat`), and that the remote API headers are
   accepted. The panel version wasn't recorded.
+- **2026-10-12:** branch `rename/side-by-side` ran as `nycto-wings.service`
+  (API 8081, SFTP 2023, network `nycto_nw` on bridge `nycto0`) next to stock
+  `wings.service` on the same VPS and against the same panel. A server on the
+  Nycto node passed the same checks, and the stock node's server kept working.
 
 ## 9. Open questions (all UNVERIFIED)
 
