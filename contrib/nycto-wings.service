@@ -8,7 +8,6 @@ PartOf=docker.service
 User=root
 WorkingDirectory=/etc/nycto
 LimitNOFILE=4096
-PIDFile=/var/run/nycto-wings/daemon.pid
 ExecStart=/usr/local/bin/nycto-wings --config /etc/nycto/config.yml
 Restart=on-failure
 StartLimitInterval=180
