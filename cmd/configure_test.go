@@ -49,8 +49,27 @@ func newFakePanel(t *testing.T, body string) *httptest.Server {
 
 func clearTokenEnvironment(t *testing.T) {
 	t.Helper()
+	t.Setenv("NYCTO_TOKEN_ID", "")
+	t.Setenv("NYCTO_TOKEN", "")
 	t.Setenv("WINGS_TOKEN_ID", "")
 	t.Setenv("WINGS_TOKEN", "")
+}
+
+// A fresh install has no configuration directory yet.
+func TestConfigureCreatesConfigDirectory(t *testing.T) {
+	clearTokenEnvironment(t)
+	dir := filepath.Join(t.TempDir(), "etc", "nycto")
+	path := filepath.Join(dir, "config.yml")
+
+	require.NoError(t, writePanelConfiguration(path, "http://panel.test", []byte(`{"token_id":"panel-id","token":"panel-token"}`)))
+
+	st, err := os.Stat(dir)
+	require.NoError(t, err)
+	require.Equal(t, os.FileMode(0o700), st.Mode().Perm())
+
+	cfg, err := config.Load(path)
+	require.NoError(t, err)
+	require.Equal(t, "panel-token", cfg.AuthenticationToken)
 }
 
 func TestConfigureWritesToConfigPath(t *testing.T) {

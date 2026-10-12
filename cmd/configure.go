@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"time"
 
@@ -192,6 +193,12 @@ func writePanelConfiguration(path string, panelURL string, body []byte) error {
 
 	// The Panel returns the token itself.
 	if err := cfg.ResolveToken(true); err != nil {
+		return err
+	}
+
+	// The directory does not exist yet on a fresh install. Only root reads the
+	// configuration, which holds the node's token.
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
 
