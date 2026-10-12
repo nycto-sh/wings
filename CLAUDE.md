@@ -120,6 +120,20 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X gith
 ```
 
 Lint (matches CI): `GOOS=linux golangci-lint run ./...` (config in `.golangci.yml`; `gosec` enabled).
+**Run it before every push.** CI pins golangci-lint v2.11.4 on Go 1.26.9. On the Windows machine, install
+that version and run it with `GOTOOLCHAIN=go1.26.9`, because the local Go 1.27 writes package data
+that golangci-lint can't read:
+
+```powershell
+$env:GOBIN="<scratch dir>"; go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4
+$env:GOTOOLCHAIN="go1.26.9"; $env:GOOS="linux"; golangci-lint run ./...
+```
+
+Locally, it reports every file as "not properly formatted (gofmt)" because Git checks out CRLF line
+endings on Windows. Ignore those. Every other finding is real and fails CI.
+
+**After pushing, check CI** (`https://github.com/nycto-sh/wings/actions`). It only runs on `develop`,
+and the "Build and Test" job runs the tests as a **non-root** user, unlike the VPS.
 
 Docker image: `Dockerfile` (multi-stage, distroless; `--build-arg VERSION=`).
 
