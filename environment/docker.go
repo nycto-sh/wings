@@ -45,7 +45,7 @@ func ConfigureDocker(ctx context.Context) error {
 			return err
 		}
 
-		log.Info("creating missing pterodactyl0 interface, this could take a few seconds...")
+		log.WithField("network", nw.Name).WithField("bridge", nw.BridgeName).Info("creating missing docker network, this could take a few seconds...")
 		if err := createDockerNetwork(ctx, cli); err != nil {
 			return err
 		}
@@ -92,7 +92,7 @@ func createDockerNetwork(ctx context.Context, cli *client.Client) error {
 			"com.docker.network.bridge.enable_icc":           strconv.FormatBool(nw.EnableICC),
 			"com.docker.network.bridge.enable_ip_masquerade": "true",
 			"com.docker.network.bridge.host_binding_ipv4":    "0.0.0.0",
-			"com.docker.network.bridge.name":                 "pterodactyl0",
+			"com.docker.network.bridge.name":                 nw.BridgeName,
 			"com.docker.network.driver.mtu":                  strconv.FormatInt(nw.NetworkMTU, 10),
 		},
 	})

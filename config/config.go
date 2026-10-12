@@ -28,7 +28,13 @@ import (
 	"github.com/pterodactyl/wings/system"
 )
 
-const DefaultLocation = "/etc/pterodactyl/config.yml"
+const DefaultLocation = "/etc/nycto/config.yml"
+
+// LogFileName is the name of the log file Wings writes to in the log directory.
+const LogFileName = "nycto-wings.log"
+
+// ServiceName is the name of the systemd service Wings is expected to run as.
+const ServiceName = "nycto-wings.service"
 
 // DefaultTLSConfig sets sane defaults to use when configuring the internal
 // webserver to listen for public connections.
@@ -136,27 +142,27 @@ type RemoteQueryConfiguration struct {
 
 // SystemConfiguration defines basic system configuration settings.
 type SystemConfiguration struct {
-	// The root directory where all of the pterodactyl data is stored at.
-	RootDirectory string `default:"/var/lib/pterodactyl" json:"-" yaml:"root_directory"`
+	// The root directory where all of the Wings data is stored at.
+	RootDirectory string `default:"/var/lib/nycto" json:"-" yaml:"root_directory"`
 
 	// Directory where logs for server installations and other wings events are logged.
-	LogDirectory string `default:"/var/log/pterodactyl" json:"-" yaml:"log_directory"`
+	LogDirectory string `default:"/var/log/nycto" json:"-" yaml:"log_directory"`
 
 	// Directory where the server data is stored at.
-	Data string `default:"/var/lib/pterodactyl/volumes" json:"-" yaml:"data"`
+	Data string `default:"/var/lib/nycto/volumes" json:"-" yaml:"data"`
 
 	// Directory where server archives for transferring will be stored.
-	ArchiveDirectory string `default:"/var/lib/pterodactyl/archives" json:"-" yaml:"archive_directory"`
+	ArchiveDirectory string `default:"/var/lib/nycto/archives" json:"-" yaml:"archive_directory"`
 
 	// Directory where local backups will be stored on the machine.
-	BackupDirectory string `default:"/var/lib/pterodactyl/backups" json:"-" yaml:"backup_directory"`
+	BackupDirectory string `default:"/var/lib/nycto/backups" json:"-" yaml:"backup_directory"`
 
-	// TmpDirectory specifies where temporary files for Pterodactyl installation processes
+	// TmpDirectory specifies where temporary files for server installation processes
 	// should be created. This supports environments running docker-in-docker.
-	TmpDirectory string `default:"/tmp/pterodactyl" json:"-" yaml:"tmp_directory"`
+	TmpDirectory string `default:"/tmp/nycto" json:"-" yaml:"tmp_directory"`
 
 	// The user that should own all of the server files, and be used for containers.
-	Username string `default:"pterodactyl" yaml:"username"`
+	Username string `default:"nycto" yaml:"username"`
 
 	// The timezone for this Wings instance. This is detected by Wings automatically if possible,
 	// and falls back to UTC if not able to be detected. If you need to set this manually, that
@@ -202,7 +208,7 @@ type SystemConfiguration struct {
 		// into the Wings container as the exact path on the host, which should match the value
 		// specified here. If you are using SELinux, you will need to make sure this file has the
 		// correct SELinux context in order for containers to use it.
-		Directory string `yaml:"directory" default:"/run/wings/etc"`
+		Directory string `yaml:"directory" default:"/run/nycto-wings/etc"`
 	} `yaml:"passwd"`
 
 	// MachineID controls the mounting of a generated `/etc/machine-id` file into containers started by Wings.
@@ -222,7 +228,7 @@ type SystemConfiguration struct {
 		// into the Wings container as the exact path on the host, which should match the value
 		// specified here. If you are using SELinux, you will need to make sure this file has the
 		// correct SELinux context in order for containers to use it.
-		Directory string `yaml:"directory" default:"/run/wings/machine-id"`
+		Directory string `yaml:"directory" default:"/run/nycto-wings/machine-id"`
 	} `yaml:"machine_id"`
 
 	// The amount of time in seconds that can elapse before a server's disk space calculation is
@@ -347,7 +353,7 @@ type Configuration struct {
 	// if the debug flag is passed through the command line arguments.
 	Debug bool
 
-	AppName string `default:"Pterodactyl" json:"app_name" yaml:"app_name"`
+	AppName string `default:"Nycto" json:"app_name" yaml:"app_name"`
 
 	// A unique identifier for this node in the Panel.
 	Uuid string
@@ -513,13 +519,22 @@ func (c *Configuration) ResolveToken(remote bool) error {
 	}
 
 	var err error
-	if c.Token.ID, err = resolve("token ID", os.Getenv("WINGS_TOKEN_ID"), c.AuthenticationTokenId); err != nil {
+	if c.Token.ID, err = resolve("token ID", Getenv("TOKEN_ID"), c.AuthenticationTokenId); err != nil {
 		return err
 	}
-	if c.Token.Token, err = resolve("token", os.Getenv("WINGS_TOKEN"), c.AuthenticationToken); err != nil {
+	if c.Token.Token, err = resolve("token", Getenv("TOKEN"), c.AuthenticationToken); err != nil {
 		return err
 	}
 	return nil
+}
+
+// Getenv returns the value of the NYCTO_<name> environment variable, falling
+// back to the WINGS_<name> variable used by upstream Wings when it is not set.
+func Getenv(name string) string {
+	if v := os.Getenv("NYCTO_" + name); v != "" {
+		return v
+	}
+	return os.Getenv("WINGS_" + name)
 }
 
 // SetDebugViaFlag tracks if the application is running in debug mode because of
@@ -592,14 +607,14 @@ func WriteToDisk(c *Configuration) error {
 	return nil
 }
 
-// EnsurePterodactylUser ensures that the Pterodactyl core user exists on the
+// EnsureSystemUser ensures that the Wings system user exists on the
 // system. This user will be the owner of all data in the root data directory
 // and is used as the user within containers. If files are not owned by this
 // user there will be issues with permissions on Docker mount points.
 //
 // This function IS NOT thread safe and should only be called in the main thread
 // when the application is booting.
-func EnsurePterodactylUser() error {
+func EnsureSystemUser() error {
 	sysName, err := getSystemName()
 	if err != nil {
 		return err
@@ -607,9 +622,9 @@ func EnsurePterodactylUser() error {
 
 	// Our way of detecting if wings is running inside of Docker.
 	if sysName == "distroless" {
-		_config.System.Username = system.FirstNotEmpty(os.Getenv("WINGS_USERNAME"), "pterodactyl")
-		_config.System.User.Uid = system.MustInt(system.FirstNotEmpty(os.Getenv("WINGS_UID"), "988"))
-		_config.System.User.Gid = system.MustInt(system.FirstNotEmpty(os.Getenv("WINGS_GID"), "988"))
+		_config.System.Username = system.FirstNotEmpty(Getenv("USERNAME"), "nycto")
+		_config.System.User.Uid = system.MustInt(system.FirstNotEmpty(Getenv("UID"), "989"))
+		_config.System.User.Gid = system.MustInt(system.FirstNotEmpty(Getenv("GID"), "989"))
 		return nil
 	}
 
@@ -625,7 +640,7 @@ func EnsurePterodactylUser() error {
 		return nil
 	}
 
-	log.WithField("username", _config.System.Username).Info("checking for pterodactyl system user")
+	log.WithField("username", _config.System.Username).Info("checking for wings system user")
 	u, err := user.Lookup(_config.System.Username)
 	// If an error is returned but it isn't the unknown user error just abort
 	// the process entirely. If we did find a user, return it immediately.
@@ -811,7 +826,8 @@ func EnableLogRotation() error {
 	} else if (err != nil && os.IsNotExist(err)) || !st.IsDir() {
 		return nil
 	}
-	if _, err := os.Stat("/etc/logrotate.d/wings"); err == nil || !os.IsNotExist(err) {
+	p := "/etc/logrotate.d/" + strings.TrimSuffix(ServiceName, ".service")
+	if _, err := os.Stat(p); err == nil || !os.IsNotExist(err) {
 		return err
 	}
 
@@ -819,13 +835,13 @@ func EnableLogRotation() error {
 	// If we've gotten to this point it means the logrotate directory exists on the system
 	// but there is not a file for wings already. In that case, let us write a new file to
 	// it so files can be rotated easily.
-	f, err := os.Create("/etc/logrotate.d/wings")
+	f, err := os.Create(p)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	t, err := template.New("logrotate").Parse(`{{.LogDirectory}}/wings.log {
+	t, err := template.New("logrotate").Parse(`{{.LogDirectory}}/{{.LogFileName}} {
     size 10M
     compress
     delaycompress
@@ -834,14 +850,19 @@ func EnableLogRotation() error {
     missingok
     notifempty
     postrotate
-        /usr/bin/systemctl kill -s HUP wings.service >/dev/null 2>&1 || true
+        /usr/bin/systemctl kill -s HUP {{.ServiceName}} >/dev/null 2>&1 || true
     endscript
 }`)
 	if err != nil {
 		return err
 	}
 
-	return errors.Wrap(t.Execute(f, _config.System), "config: failed to write logrotate to disk")
+	data := struct {
+		LogDirectory string
+		LogFileName  string
+		ServiceName  string
+	}{_config.System.LogDirectory, LogFileName, ServiceName}
+	return errors.Wrap(t.Execute(f, data), "config: failed to write logrotate to disk")
 }
 
 // GetStatesPath returns the location of the JSON file that tracks server states.

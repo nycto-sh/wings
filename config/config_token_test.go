@@ -58,3 +58,34 @@ func TestResolveRemoteTokenRequiresEnvironmentMatch(t *testing.T) {
 		t.Fatal("expected mismatched environment credentials to be rejected")
 	}
 }
+
+func TestGetenvPrefersNyctoVariables(t *testing.T) {
+	t.Setenv("NYCTO_TOKEN", "nycto-token")
+	t.Setenv("WINGS_TOKEN", "wings-token")
+	if v := Getenv("TOKEN"); v != "nycto-token" {
+		t.Fatalf("expected the NYCTO_ variable to be used, got %q", v)
+	}
+
+	t.Setenv("NYCTO_TOKEN", "")
+	if v := Getenv("TOKEN"); v != "wings-token" {
+		t.Fatalf("expected the WINGS_ variable to be used as a fallback, got %q", v)
+	}
+}
+
+func TestResolveLocalTokenFromNyctoEnvironment(t *testing.T) {
+	t.Setenv("NYCTO_TOKEN_ID", "env-id")
+	t.Setenv("NYCTO_TOKEN", "env-token")
+	t.Setenv("WINGS_TOKEN_ID", "wings-id")
+	t.Setenv("WINGS_TOKEN", "wings-token")
+
+	cfg := Configuration{
+		AuthenticationTokenId: "config-id",
+		AuthenticationToken:   "config-token",
+	}
+	if err := cfg.ResolveToken(false); err != nil {
+		t.Fatalf("expected local credentials to resolve: %v", err)
+	}
+	if cfg.Token.ID != "env-id" || cfg.Token.Token != "env-token" {
+		t.Fatalf("unexpected resolved credentials: %#v", cfg.Token)
+	}
+}

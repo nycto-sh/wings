@@ -46,6 +46,27 @@
 | `loggers/cli/` | apex/log CLI handler |
 | `protocol/` | Protocol documentation for the fork |
 
+### Fork names
+
+The binary is `nycto-wings`, run by `nycto-wings.service` (`contrib/nycto-wings.service`).
+
+Defaults, chosen so they don't clash with a stock Wings install on the same host
+(`config/config_defaults_test.go` checks this):
+
+- config: `/etc/nycto/config.yml`
+- data: `/var/lib/nycto/{volumes,archives,backups}`
+- logs: `/var/log/nycto/nycto-wings.log`
+- temp: `/tmp/nycto`
+- run dir: `/run/nycto-wings`
+- system user: `nycto`
+- Docker network: `nycto_nw`, bridge `nycto0`, subnets 172.19.0.0/16 and fd4e:7963:746f::/64
+- logrotate file: `/etc/logrotate.d/nycto-wings`
+
+Env overrides use the `NYCTO_*` prefix and fall back to `WINGS_*` (`config.Getenv`).
+
+Protocol-facing names stay upstream's on purpose: the `Accept`/`User-Agent`
+headers, the `wings` backup adapter and `.pteroignore`.
+
 ### Startup flow (`cmd/root.go`)
 
 1. `initConfig`: `config.FromFile`, which runs `ResolveToken(false)` and `Set` (builds the HS256 JWT key).
@@ -65,8 +86,9 @@
 
 ## Build
 
-- **Go 1.26** is required (`go.mod`: `go 1.26.0`, `toolchain go1.26.9`).
-  Go is **not installed** on the Windows dev machine yet. Install it first.
+- **Go 1.26+** is required (`go.mod`: `go 1.26.0`, `toolchain go1.26.9`). The
+  Windows dev machine has Go 1.27 at `C:\Program Files\Go\bin`. A shell that
+  started before the install may need its `PATH` refreshed.
 - **Wings is Linux-only.** It uses `golang.org/x/sys/unix` (openat2),
   `syscall.Getrlimit` and `//go:build unix` files, so a native Windows build
   **fails**. Always set `GOOS=linux`.
@@ -75,8 +97,8 @@ PowerShell (Windows dev machine):
 
 ```powershell
 $env:GOOS="linux"; $env:GOARCH="amd64"; $env:CGO_ENABLED="0"
-go build -trimpath -ldflags="-s -w -X github.com/pterodactyl/wings/system.Version=dev" -o build/wings_linux_amd64 .
-$env:GOARCH="arm64"; go build -trimpath -ldflags="-s -w" -o build/wings_linux_arm64 .
+go build -trimpath -ldflags="-s -w -X github.com/pterodactyl/wings/system.Version=dev" -o build/nycto-wings_linux_amd64 .
+$env:GOARCH="arm64"; go build -trimpath -ldflags="-s -w" -o build/nycto-wings_linux_arm64 .
 go vet ./...      # with GOOS=linux still set; type-checks Linux-only files and tests
 Remove-Item Env:GOOS, Env:GOARCH, Env:CGO_ENABLED
 ```
@@ -84,7 +106,7 @@ Remove-Item Env:GOOS, Env:GOARCH, Env:CGO_ENABLED
 Bash / Linux / WSL: `make build` (amd64 + arm64 into `build/`), or
 
 ```sh
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/pterodactyl/wings/system.Version=dev" -o build/wings_linux_amd64 .
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X github.com/pterodactyl/wings/system.Version=dev" -o build/nycto-wings_linux_amd64 .
 ```
 
 Lint (matches CI): `GOOS=linux golangci-lint run ./...` (config in `.golangci.yml`; `gosec` enabled).
@@ -98,7 +120,8 @@ Docker image: `Dockerfile` (multi-stage, distroless; `--build-arg VERSION=`).
   (`server/mounts_test.go`).
 - They must **run on Linux**. On Windows, `GOOS=linux go test` builds Linux test
   binaries it can't execute. Locally, `GOOS=linux go vet ./...` is the
-  compile check. Run the real tests in WSL (it's installed) or on the VPS.
+  compile check. Run the real tests on the VPS. WSL is available, but no
+  distribution is installed (`wsl --install -d Debian` would add one).
 - Commands (from CI, `.github/workflows/push.yaml`):
 
   ```sh
@@ -114,11 +137,13 @@ Docker image: `Dockerfile` (multi-stage, distroless; `--build-arg VERSION=`).
 
 ## Dev workflow
 
-1. Edit locally (Windows). Run the `GOOS=linux` build and `go vet`, and run unit tests in WSL if possible.
+1. Edit locally (Windows). Run the `GOOS=linux` build and `go vet`.
 2. Commit and push to GitHub (`origin` = `github.com/nycto-sh/wings`, main branch `develop`).
    Only commit or push when the owner asks.
-3. On the Linux VPS (Docker + root available): pull, build, run tests, then run
-   the daemon against a panel (`wings --debug --config <path>`) for integration testing.
+3. On the Debian 12 VPS (Docker + root available), the source is at `/opt/nycto/wings-src`:
+   `git pull`, `go test ./...`, build, install to `/usr/local/bin/nycto-wings`, and
+   restart `nycto-wings.service` (unit in `contrib/`). Stock Pterodactyl Wings is also
+   installed on that VPS (`wings.service`, `/etc/pterodactyl`), and the two must not clash.
 4. Report what was verified locally versus what still needs VPS verification.
 
 ## Coding conventions observed
@@ -161,5 +186,6 @@ Docker image: `Dockerfile` (multi-stage, distroless; `--build-arg VERSION=`).
 4. **Keep the upstream `LICENSE` and attribution intact.** That includes the
    "Dane Everitt & Contributors" copyright notices and `internal/ufs/LICENSE` / `go.LICENSE`.
    Add Nycto attribution alongside, never in place of, the upstream notices.
-5. Don't rename upstream-specific identifiers (module path, binary, paths,
-   Docker names) until the owner approves the rename plan.
+5. Don't rename upstream-specific identifiers any further without the owner's
+   approval. The module path `github.com/pterodactyl/wings` is still upstream's,
+   and its rename is pending.

@@ -47,14 +47,14 @@ var (
 )
 
 var rootCommand = &cobra.Command{
-	Use:   "wings",
-	Short: "Runs the API server allowing programmatic control of game servers for Pterodactyl Panel.",
+	Use:   "nycto-wings",
+	Short: "Runs the API server allowing programmatic control of game servers for the Nycto and Pterodactyl panels.",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		initConfig()
 		initLogging()
 		if tls, _ := cmd.Flags().GetBool("auto-tls"); tls {
 			if host, _ := cmd.Flags().GetString("tls-hostname"); host == "" {
-				fmt.Println("A TLS hostname must be provided when running wings with automatic TLS, e.g.:\n\n    ./wings --auto-tls --tls-hostname my.example.com")
+				fmt.Println("A TLS hostname must be provided when running nycto-wings with automatic TLS, e.g.:\n\n    ./nycto-wings --auto-tls --tls-hostname my.example.com")
 				os.Exit(1)
 			}
 		}
@@ -66,7 +66,7 @@ var versionCommand = &cobra.Command{
 	Use:   "version",
 	Short: "Prints the current executable version and exits.",
 	Run: func(cmd *cobra.Command, _ []string) {
-		fmt.Printf("wings v%s\nCopyright © 2018 - %d Dane Everitt & Contributors\n", system.Version, time.Now().Year())
+		fmt.Printf("nycto-wings v%s\nA fork of Pterodactyl Wings.\nCopyright © 2018 - %d Dane Everitt & Contributors\n", system.Version, time.Now().Year())
 	},
 }
 
@@ -111,11 +111,11 @@ func rootCmdRun(cmd *cobra.Command, _ []string) {
 	}
 	log.WithField("timezone", config.Get().System.Timezone).Info("configured wings with system timezone")
 	if err := config.ConfigureDirectories(); err != nil {
-		log.WithField("error", err).Fatal("failed to configure system directories for pterodactyl")
+		log.WithField("error", err).Fatal("failed to configure system directories for wings")
 		return
 	}
-	if err := config.EnsurePterodactylUser(); err != nil {
-		log.WithField("error", err).Fatal("failed to create pterodactyl system user")
+	if err := config.EnsureSystemUser(); err != nil {
+		log.WithField("error", err).Fatal("failed to create wings system user")
 		return
 	}
 	if err := config.ConfigurePasswd(); err != nil {
@@ -476,7 +476,7 @@ func initLogging() {
 	if err := os.MkdirAll(path.Join(dir, "/install"), 0o700); err != nil {
 		log2.Fatalf("cmd/root: failed to create install directory path: %s", err)
 	}
-	p := filepath.Join(dir, "/wings.log")
+	p := filepath.Join(dir, config.LogFileName)
 	w, err := logrotate.NewFile(p)
 	if err != nil {
 		log2.Fatalf("cmd/root: failed to create wings log: %s", err)
@@ -489,21 +489,17 @@ func initLogging() {
 	log.WithField("path", p).Info("writing log files to disk")
 }
 
-// Prints the wings logo, nothing special here!
+// Prints the Nycto Wings banner, including the upstream attribution.
 func printLogo() {
 	fmt.Printf(colorstring.Color(`
-                     ____
-__ [blue][bold]Pterodactyl[reset] _____/___/_______ _______ ______
-\_____\    \/\/    /   /       /  __   /   ___/
-   \___\          /   /   /   /  /_/  /___   /
-        \___/\___/___/___/___/___    /______/
-                            /_______/ [bold]%s[reset]
+[blue][bold]Nycto Wings[reset] [bold]%s[reset]
+A fork of Pterodactyl Wings.
 
 Copyright © 2018 - %d Dane Everitt & Contributors
 
-Website:  https://pterodactyl.io
- Source:  https://github.com/pterodactyl/wings
-License:  https://github.com/pterodactyl/wings/blob/develop/LICENSE
+  Source:  https://github.com/nycto-sh/wings
+Upstream:  https://github.com/pterodactyl/wings
+ License:  https://github.com/nycto-sh/wings/blob/develop/LICENSE
 
 This software is made available under the terms of the MIT license.
 The above copyright notice and this permission notice shall be included

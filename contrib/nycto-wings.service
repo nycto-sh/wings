@@ -1,0 +1,19 @@
+[Unit]
+Description=Nycto Wings Daemon
+After=docker.service
+Requires=docker.service
+PartOf=docker.service
+
+[Service]
+User=root
+WorkingDirectory=/etc/nycto
+LimitNOFILE=4096
+PIDFile=/var/run/nycto-wings/daemon.pid
+ExecStart=/usr/local/bin/nycto-wings --config /etc/nycto/config.yml
+Restart=on-failure
+StartLimitInterval=180
+StartLimitBurst=30
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

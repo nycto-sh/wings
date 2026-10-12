@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 go build \
     -ldflags="-s -w -X github.com/pterodactyl/wings/system.Version=$VERSION" \
     -v \
     -trimpath \
-    -o wings \
+    -o nycto-wings \
     wings.go
 RUN echo "ID=\"distroless\"" > /etc/os-release
 
@@ -20,9 +20,9 @@ FROM gcr.io/distroless/static:latest
 COPY --from=builder /etc/os-release /etc/os-release
 COPY --from=builder /etc/mime.types /etc/mime.types
 
-COPY --from=builder /app/wings /usr/bin/
+COPY --from=builder /app/nycto-wings /usr/bin/
 
-ENTRYPOINT ["/usr/bin/wings"]
-CMD ["--config", "/etc/pterodactyl/config.yml"]
+ENTRYPOINT ["/usr/bin/nycto-wings"]
+CMD ["--config", "/etc/nycto/config.yml"]
 
 EXPOSE 8080 2022

@@ -52,7 +52,8 @@ serialized (`json:"-" yaml:"-"`). `Configuration.ResolveToken(remote bool)`
 fills it in:
 
 - **Local load** (`config.FromFile` → `ResolveToken(false)`). Env vars
-  `WINGS_TOKEN_ID` / `WINGS_TOKEN` take priority over the YAML values. Values
+  `NYCTO_TOKEN_ID` / `NYCTO_TOKEN` take priority over the YAML values. If they're
+  unset, the upstream names `WINGS_TOKEN_ID` / `WINGS_TOKEN` are used (`config.Getenv`). Values
   are passed through `config.Expand`, so `$VAR` is expanded, then a `file://path`
   value is read from disk (meant for systemd `LoadCredential`).
 - **Panel-supplied values** (`POST /api/update`, `wings configure`) →
@@ -186,7 +187,7 @@ server (`server/manager.go:InitServer`, `server/server.go:SyncWithConfiguration`
 - S3 restore download: `GET download_url`. Internal/private destinations are blocked unless `system.backups.restore_host_allowlist` allows them (`router/router_server_backup.go:backupRestoreHttpClient`).
 - Remote file pull: user-supplied URL (`router/downloader/`). Its `User-Agent` is `Pterodactyl Panel (https://pterodactyl.io)`.
 - Node-to-node transfer: `POST <url>` (§3.6).
-- `wings diagnostics`: uploads the report to a hastebin (default `https://ptero.co`) when the user agrees (`cmd/diagnostics.go:uploadToHastebin`).
+- `nycto-wings diagnostics`: uploads the report only when `--hastebin-url` is given and the user agrees. There is no default, so it never goes to upstream's `ptero.co` (`cmd/diagnostics.go:uploadToHastebin`).
 
 ---
 
@@ -516,10 +517,19 @@ Server: `sftp/server.go`. Per-session handler: `sftp/handler.go`.
 
 ---
 
-## 8. Open questions (all UNVERIFIED)
+## 8. Verification log
+
+- **2026-10-12:** the unmodified fork (`develop` at `5d9e2c3`) ran on the Debian 12
+  test VPS against the owner's stock Pterodactyl panel. These all worked: node online,
+  console websocket and power actions, file upload and download, SFTP login, backup
+  create and download. This confirms in practice that the stock panel sends tokens the
+  fork accepts (`scope`, `user_uuid`, `iat`), and that the remote API headers are
+  accepted. The panel version wasn't recorded.
+
+## 9. Open questions (all UNVERIFIED)
 
 - Exact `exp` lifetimes and `iss`/`aud` values the stock panel puts in each JWT type.
-- Whether the current stock panel always includes `scope`, `user_uuid` and `iat`. Wings rejects tokens without them.
+- Whether **older** stock panels include `scope`, `user_uuid` and `iat`. The panel tested on 2026-10-12 does (§8).
 - Whether the stock panel's `/api/remote/*` routes care about the `Accept: application/vnd.pterodactyl.v1+json` or `User-Agent` headers. Keep both unchanged until this is checked.
 - Whether the panel's transfer `token` field includes the `Bearer ` prefix. The code requires it.
 - Whether `jwt.Verify` (gbrlsnchs/jwt v3) enforces the header `alg`.

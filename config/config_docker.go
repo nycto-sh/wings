@@ -14,19 +14,19 @@ import (
 
 type dockerNetworkInterfaces struct {
 	V4 struct {
-		Subnet  string `default:"172.18.0.0/16"`
-		Gateway string `default:"172.18.0.1"`
+		Subnet  string `default:"172.19.0.0/16"`
+		Gateway string `default:"172.19.0.1"`
 	}
 	V6 struct {
-		Subnet  string `default:"fdba:17c8:6c94::/64"`
-		Gateway string `default:"fdba:17c8:6c94::1011"`
+		Subnet  string `default:"fd4e:7963:746f::/64"`
+		Gateway string `default:"fd4e:7963:746f::1011"`
 	}
 }
 
 type DockerNetworkConfiguration struct {
 	// The interface that should be used to create the network. Must not conflict
 	// with any other interfaces in use by Docker or on the system.
-	Interface string `default:"172.18.0.1" json:"interface" yaml:"interface"`
+	Interface string `default:"172.19.0.1" json:"interface" yaml:"interface"`
 
 	// The DNS settings for containers.
 	Dns []string `default:"[\"1.1.1.1\", \"1.0.0.1\"]"`
@@ -34,14 +34,19 @@ type DockerNetworkConfiguration struct {
 	// The name of the network to use. If this network already exists it will not
 	// be created. If it is not found, a new network will be created using the interface
 	// defined.
-	Name       string                  `default:"pterodactyl_nw"`
+	Name       string                  `default:"nycto_nw"`
 	ISPN       bool                    `default:"false" yaml:"ispn"`
 	Driver     string                  `default:"bridge"`
-	Mode       string                  `default:"pterodactyl_nw" yaml:"network_mode"`
+	Mode       string                  `default:"nycto_nw" yaml:"network_mode"`
 	IsInternal bool                    `default:"false" yaml:"is_internal"`
 	EnableICC  bool                    `default:"true" yaml:"enable_icc"`
 	NetworkMTU int64                   `default:"1500" yaml:"network_mtu"`
 	Interfaces dockerNetworkInterfaces `yaml:"interfaces"`
+
+	// BridgeName is the name of the host network interface created for the
+	// network. It must differ from the bridge of any other Wings install on the
+	// same machine, such as upstream Wings, which uses "pterodactyl0".
+	BridgeName string `default:"nycto0" json:"bridge_name" yaml:"bridge_name"`
 }
 
 // DockerConfiguration defines the docker configuration used by the daemon when
@@ -109,7 +114,7 @@ type DockerConfiguration struct {
 	// enabled.
 	//
 	// If the value is blank, the daemon's user namespace remapping configuration is used,
-	// if the value is "host", then the pterodactyl containers are started with user namespace
+	// if the value is "host", then the server containers are started with user namespace
 	// remapping disabled
 	UsernsMode string `default:"" json:"userns_mode" yaml:"userns_mode"`
 

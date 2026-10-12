@@ -43,8 +43,8 @@ jobs:
           CGO_ENABLED: 0
           SRC_PATH: github.com/pterodactyl/wings
         run: |
-          go build -v -trimpath -ldflags="-s -w -X ${SRC_PATH}/system.Version=dev-${GITHUB_SHA:0:7}" -o dist/wings ${SRC_PATH}
-          go build -v -trimpath -ldflags="-X ${SRC_PATH}/system.Version=dev-${GITHUB_SHA:0:7}" -o dist/wings_debug ${SRC_PATH}
+          go build -v -trimpath -ldflags="-s -w -X ${SRC_PATH}/system.Version=dev-${GITHUB_SHA:0:7}" -o dist/nycto-wings ${SRC_PATH}
+          go build -v -trimpath -ldflags="-X ${SRC_PATH}/system.Version=dev-${GITHUB_SHA:0:7}" -o dist/nycto-wings_debug ${SRC_PATH}
           chmod 755 dist/*
 
       - name: go test
@@ -65,12 +65,12 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ (github.ref == 'refs/heads/develop' || github.event_name == 'pull_request') && matrix.go == '1.27.2' }}
         with:
-          name: wings_linux_${{ matrix.goarch }}
-          path: dist/wings
+          name: nycto-wings_linux_${{ matrix.goarch }}
+          path: dist/nycto-wings
 
       - name: Upload Debug Artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: ${{ (github.ref == 'refs/heads/develop' || github.event_name == 'pull_request') && matrix.go == '1.27.2' }}
         with:
-          name: wings_linux_${{ matrix.goarch }}_debug
-          path: dist/wings_debug
+          name: nycto-wings_linux_${{ matrix.goarch }}_debug
+          path: dist/nycto-wings_debug

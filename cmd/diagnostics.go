@@ -30,7 +30,9 @@ import (
 )
 
 const (
-	DefaultHastebinUrl = "https://ptero.co"
+	// DefaultHastebinUrl is empty so that reports are only ever uploaded to a
+	// hastebin instance the operator chooses with --hastebin-url.
+	DefaultHastebinUrl = ""
 	DefaultLogLines    = 200
 )
 
@@ -48,7 +50,7 @@ var diagnosticsArgs struct {
 func newDiagnosticsCommand() *cobra.Command {
 	command := &cobra.Command{
 		Use:   "diagnostics",
-		Short: "Collect and report information about this Wings instance to assist in debugging.",
+		Short: "Collect and report information about this Nycto Wings instance to assist in debugging.",
 		PreRun: func(cmd *cobra.Command, args []string) {
 			initConfig()
 			log.SetHandler(cli.Default)
@@ -56,7 +58,7 @@ func newDiagnosticsCommand() *cobra.Command {
 		Run: diagnosticsCmdRun,
 	}
 
-	command.Flags().StringVar(&diagnosticsArgs.HastebinURL, "hastebin-url", DefaultHastebinUrl, "the url of the hastebin instance to use")
+	command.Flags().StringVar(&diagnosticsArgs.HastebinURL, "hastebin-url", DefaultHastebinUrl, "the url of the hastebin instance to upload the report to; the report is only printed if not set")
 	command.Flags().IntVar(&diagnosticsArgs.LogLines, "log-lines", DefaultLogLines, "the number of log lines to include in the report")
 
 	return command
@@ -79,14 +81,20 @@ func diagnosticsCmdRun(*cobra.Command, []string) {
 			Name:   "IncludeLogs",
 			Prompt: &survey.Confirm{Message: "Do you want to include the latest logs?", Default: true},
 		},
-		{
+	}
+	if diagnosticsArgs.HastebinURL != "" {
+		questions = append(questions, &survey.Question{
 			Name: "ReviewBeforeUpload",
 			Prompt: &survey.Confirm{
 				Message: "Do you want to review the collected data before uploading to " + diagnosticsArgs.HastebinURL + "?",
 				Help:    "The data, especially the logs, might contain sensitive information, so you should review it. You will be asked before anything is uploaded.",
 				Default: true,
 			},
-		},
+		})
+	} else {
+		// Without somewhere to upload it to, printing the report is the only way to
+		// see it.
+		diagnosticsArgs.ReviewBeforeUpload = true
 	}
 	if err := survey.Ask(questions, &diagnosticsArgs); err != nil {
 		if err == terminal.InterruptErr {
@@ -98,7 +106,7 @@ func diagnosticsCmdRun(*cobra.Command, []string) {
 	dockerVersion, dockerInfo, dockerErr := getDockerInfo()
 
 	output := &strings.Builder{}
-	fmt.Fprintln(output, "Pterodactyl Wings - Diagnostics Report")
+	fmt.Fprintln(output, "Nycto Wings - Diagnostics Report")
 	printHeader(output, "Versions")
 	fmt.Fprintln(output, "               Wings:", system.Version)
 	if dockerErr == nil {
@@ -149,9 +157,9 @@ func diagnosticsCmdRun(*cobra.Command, []string) {
 
 	printHeader(output, "Latest Wings Logs")
 	if diagnosticsArgs.IncludeLogs {
-		p := "/var/log/pterodactyl/wings.log"
+		p := path.Join("/var/log/nycto", config.LogFileName)
 		if cfg != nil {
-			p = path.Join(cfg.System.LogDirectory, "wings.log")
+			p = path.Join(cfg.System.LogDirectory, config.LogFileName)
 		}
 		if c, err := exec.Command("tail", "-n", strconv.Itoa(diagnosticsArgs.LogLines), p).Output(); err != nil { //nolint:gosec // fixed binary, no shell; path comes from the operator's config
 			fmt.Fprintln(output, "No logs found or an error occurred.")
@@ -178,6 +186,11 @@ func diagnosticsCmdRun(*cobra.Command, []string) {
 		fmt.Println("\n---------------  generated report  ---------------")
 		fmt.Println(output.String())
 		fmt.Print("---------------   end of report    ---------------\n\n")
+	}
+
+	if diagnosticsArgs.HastebinURL == "" {
+		fmt.Println("Pass --hastebin-url to upload the report to a hastebin instance.")
+		return
 	}
 
 	// Always ask before uploading, since the report can contain sensitive
