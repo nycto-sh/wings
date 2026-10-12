@@ -529,6 +529,8 @@ Server: `sftp/server.go`. Per-session handler: `sftp/handler.go`.
   (API 8081, SFTP 2023, network `nycto_nw` on bridge `nycto0`) next to stock
   `wings.service` on the same VPS and against the same panel. A server on the
   Nycto node passed the same checks, and the stock node's server kept working.
+- **2026-10-12:** after the module rename to `github.com/nycto-sh/wings`, `go test ./...`
+  passed on the VPS, and the rebuilt `nycto-wings` came back online on node 3.
 
 ## 9. Open questions (all UNVERIFIED)
 
