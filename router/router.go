@@ -98,6 +98,10 @@ func Configure(m *wserver.Manager, client remote.Client) *gin.Engine {
 	// and requests are authenticated through a JWT the panel issues to the other daemon.
 	router.POST("/api/transfers", postTransfers)
 
+	// Metrics for Prometheus accept the node's token or the read-only metrics
+	// token, so they are mounted before the node token is required for everything.
+	router.GET("/metrics", middleware.RequireMetricsAuthorization(), getPrometheusMetrics)
+
 	// All the routes beyond this mount will use an authorization middleware
 	// and will not be accessible without the correct Authorization header provided.
 	protected := router.Use(middleware.RequireAuthorization())
@@ -107,7 +111,6 @@ func Configure(m *wserver.Manager, client remote.Client) *gin.Engine {
 	protected.POST("/api/servers", postCreateServer)
 	protected.DELETE("/api/transfers/:server", deleteTransfer)
 	protected.POST("/api/deauthorize-user", postDeauthorizeUser)
-	protected.GET("/metrics", getPrometheusMetrics)
 
 	// These are server specific routes, and require that the request be authorized, and
 	// that the server exist on the Daemon.

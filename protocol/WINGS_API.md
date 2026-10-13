@@ -238,7 +238,7 @@ Unknown server, denylisted token, reused `unique_id`, or wrong scope →
 | `POST /api/servers` | `router/router_system.go:postCreateServer` | `{"uuid": "<uuidv4>", "start_on_completion": bool}` (`server/installer/installer.go:ServerDetails`) | `202`. Also `409` if it exists, or `422` if the UUID is invalid | Create a server. Wings pulls its config from the panel (§2 #3), then installs in the background |
 | `DELETE /api/transfers/:server` | `router/router_transfer.go:deleteTransfer` | – | `202` / `409` | Cancel an **incoming** transfer |
 | `POST /api/deauthorize-user` | `router/router_system.go:postDeauthorizeUser` | `{"user": "<user uuid>", "servers": ["<uuid>", ...]}`. An empty `servers` means every server | `204` | Revokes the user's JWTs issued until now (`tokens.DenyForServer`), closes their websockets and SFTP sessions |
-| `GET /metrics` | `router/router_metrics.go:getPrometheusMetrics` | – | Prometheus text format | Nycto addition (§10.3): current usage of every server, for Prometheus |
+| `GET /metrics` | `router/router_metrics.go:getPrometheusMetrics` | – | Prometheus text format | Nycto addition (§10.3): current usage of every server, for Prometheus. Also accepts the read-only metrics token |
 
 `server.APIResponse` (`server/server.go`):
 `{"state": "offline|starting|running|stopping", "is_suspended": bool, "utilization": ResourceUsage, "configuration": <settings object as §2.1>, "health": Health, "last_crash": Crash|null}`.
@@ -913,7 +913,12 @@ history kept (`interval × samples` before `to`).
 
 #### `GET /metrics`
 
-Auth: node token. Prometheus text exposition format 0.0.4
+Auth: `Authorization: Bearer <token>` with either the node token, or the
+read-only metrics token from the node's `system.metrics.token`
+(`router/middleware/middleware.go:RequireMetricsAuthorization`). The metrics
+token is accepted on this route only, and the panel can't set or read it. It's
+mounted before the node-token middleware in `router/router.go:Configure`.
+Prometheus text exposition format 0.0.4
 (`text/plain; version=0.0.4`). Answers 404 when `system.metrics.prometheus`
 is false. It lists the metric families in `docs/metrics.md`: node-level
 `nycto_wings_info` and `nycto_wings_servers`, and per server, labelled `server`

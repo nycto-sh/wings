@@ -188,6 +188,35 @@ func RequireAuthorization() gin.HandlerFunc {
 	}
 }
 
+// RequireMetricsAuthorization authenticates requests for metrics. They are
+// accepted with the node's token, or with the read-only metrics token when one
+// is set. The metrics token is accepted here and nowhere else.
+//
+// @see docs/metrics.md.
+func RequireMetricsAuthorization() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		auth := strings.SplitN(c.GetHeader("Authorization"), " ", 2)
+		if len(auth) != 2 || auth[0] != "Bearer" {
+			c.Header("WWW-Authenticate", "Bearer")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "The required authorization heads were not present in the request."})
+			return
+		}
+
+		cfg := config.Get()
+		ok := subtle.ConstantTimeCompare([]byte(auth[1]), []byte(cfg.Token.Token)) == 1
+		if token := cfg.System.Metrics.ResolvedToken(); token != "" &&
+			subtle.ConstantTimeCompare([]byte(auth[1]), []byte(token)) == 1 {
+			ok = true
+		}
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "You are not authorized to access this endpoint."})
+			return
+		}
+		ClearDeadlines(c)
+		c.Next()
+	}
+}
+
 // ClearDeadlines removes the deadlines the server applies to requests that have
 // not authenticated, so that an authenticated request is able to send and
 // receive large bodies, such as file uploads, downloads and server transfers.

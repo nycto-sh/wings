@@ -91,21 +91,40 @@ with Grafana for dashboards and alerts. Wings serves the current usage of every 
 
 Every server metric has the labels `server` (its UUID) and `name`.
 
-To collect it, add the node to Prometheus with the node's token, the `token` value in
-`/etc/nycto/config.yml`:
+### Giving Prometheus access
 
-```yaml
-scrape_configs:
-  - job_name: nycto-wings
-    scheme: https
-    authorization:
-      credentials: "<node token>"
-    static_configs:
-      - targets: ["node.example.com:8081"]
-```
+`/metrics` needs a token. Use the **metrics token**, which can read `/metrics` and do nothing
+else, rather than the node token, which gives full control of the node:
 
-**The node token gives full control of the node,** so keep the Prometheus configuration as secret
-as the token itself. A separate read-only token for metrics is a possible future improvement.
+1. Make a random token of at least 32 characters:
+   ```bash
+   openssl rand -hex 32
+   ```
+2. Add it to `/etc/nycto/config.yml`, then run `systemctl restart nycto-wings`:
+   ```yaml
+   system:
+     metrics:
+       token: "<the token>"
+   ```
+   To keep it out of the configuration file, put it in a file only root can read and use
+   `token: "file:///etc/nycto/metrics-token"`, or an environment variable with `token: "$NAME"`.
+3. Give it to Prometheus:
+   ```yaml
+   scrape_configs:
+     - job_name: nycto-wings
+       scheme: https
+       authorization:
+         credentials: "<the token>"
+       static_configs:
+         - targets: ["node.example.com:8081"]
+   ```
+
+If the metrics token leaks, all anyone can do with it is read usage figures. Change it by setting a
+new one and restarting Wings. The node token is also accepted at `/metrics`, but there's no reason
+to give it to Prometheus.
+
+Wings won't start with a metrics token shorter than 32 characters. That's deliberate: a short
+token could be guessed.
 
 Example alerts: a node's server stuck unhealthy (`nycto_server_health{status="unhealthy"} == 1`
 for 5 minutes), or a server near its disk limit
@@ -122,6 +141,7 @@ system:
     interval: 60       # seconds per sample, 10 to 3600
     retention: 168     # hours of history, 1 to 8760 (at most 100,000 samples per server)
     prometheus: true   # serve /metrics
+    token: ""          # read-only token for /metrics, at least 32 characters (see above)
 ```
 
 Changing `interval` or `retention` starts each server's history again from empty. With

@@ -308,8 +308,44 @@ type Metrics struct {
 	Retention int `default:"168" yaml:"retention"`
 
 	// Prometheus serves the current resource usage of every server at /metrics,
-	// to requests with the node's token.
+	// to requests with the node's token or the metrics token.
 	Prometheus bool `default:"true" yaml:"prometheus"`
+
+	// Token is a read-only token that is accepted by /metrics and nothing else,
+	// so that Prometheus does not need the node's token. It must be at least 32
+	// characters long. Like the node's token, it can be read from an
+	// environment variable ("$VAR") or a file ("file:///path"). The Panel can't
+	// set it.
+	Token string `json:"-" yaml:"token,omitempty"`
+
+	// resolvedToken is Token with environment variables and files resolved.
+	resolvedToken string
+}
+
+// minMetricsTokenLength is the shortest metrics token that is accepted.
+const minMetricsTokenLength = 32
+
+// ResolvedToken returns the metrics token, or an empty string if there is none.
+func (m Metrics) ResolvedToken() string {
+	return m.resolvedToken
+}
+
+// resolveToken resolves the metrics token from its environment variable or
+// file, and refuses one that is too short to be safe.
+func (m *Metrics) resolveToken() error {
+	if m.Token == "" {
+		m.resolvedToken = ""
+		return nil
+	}
+	v, err := Expand(m.Token)
+	if err != nil {
+		return errors.Wrap(err, "config: failed to read the metrics token")
+	}
+	if len(v) < minMetricsTokenLength {
+		return fmt.Errorf("config: the metrics token must be at least %d characters long", minMetricsTokenLength)
+	}
+	m.resolvedToken = v
+	return nil
 }
 
 // Limits on the history of each server.
@@ -828,6 +864,9 @@ func FromFile(path string) error {
 	}
 
 	if err := c.ResolveToken(false); err != nil {
+		return err
+	}
+	if err := c.System.Metrics.resolveToken(); err != nil {
 		return err
 	}
 
