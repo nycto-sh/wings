@@ -487,25 +487,26 @@ All denylist state is in memory only.
 Payloads decoded from tokens issued by the test panel on 2026-10-13. Signatures weren't
 captured. Values are shown as types, not the real IDs.
 
-| Claim | Websocket token | File-download token |
-|---|---|---|
-| `iss` | panel URL, e.g. `https://panel.example.com` | same |
-| `aud` | one-element array: the node's `scheme://fqdn:port`, e.g. `["https://node.example.com:8081"]` | same |
-| `iat` | issue time | same |
-| `nbf` | `iat − 300` (backdated 5 min for clock drift) | same |
-| `exp` | `iat + 600` (**10 min**) | `iat + 900` (**15 min**) |
-| `jti` | 64 hex chars, per user+server | same value as the websocket token |
-| `scope` | `"websocket"` | `"file-download"` |
-| `server_uuid` | server UUID | same |
-| `user_uuid` | user UUID | same |
-| `unique_id` | 16-char random string (Wings ignores it for websockets) | 16-char random string (one-time-use key) |
-| `permissions` | e.g. `["*", "admin.websocket.errors", "admin.websocket.install", "admin.websocket.transfer"]` for a root admin | – |
-| `file_path` | – | path of the file, e.g. `"/main.py"` |
+| Claim | Websocket | File download | File upload | Backup download |
+|---|---|---|---|---|
+| `iss` | panel URL, e.g. `https://panel.example.com` | same | same | same |
+| `aud` | one-element array: the node's `scheme://fqdn:port`, e.g. `["https://node.example.com:8081"]` | same | same | same |
+| `iat` | issue time | same | same | same |
+| `nbf` | `iat − 300` (backdated 5 min for clock drift) | same | same | same |
+| `exp` | `iat + 600` (**10 min**) | `iat + 900` (**15 min**) | `iat + 900` (**15 min**) | `iat + 900` (**15 min**) |
+| `jti` | 64 hex chars, per user+server | same value | same value | same value |
+| `scope` | `"websocket"` | `"file-download"` | `"file-upload"` | `"backup-download"` |
+| `server_uuid` | server UUID | same | same | same |
+| `user_uuid` | user UUID | same | same | same |
+| `unique_id` | 16-char random string (Wings ignores it for websockets) | 16-char random string (one-time-use key) | same as file download | same as file download |
+| `permissions` | e.g. `["*", "admin.websocket.errors", "admin.websocket.install", "admin.websocket.transfer"]` for a root admin | – | – | – |
+| `file_path` | – | path of the file, e.g. `"/main.py"` | – (the directory is the `directory` query parameter) | – |
+| `backup_uuid` | – | – | – | backup UUID |
 
 A panel that issues tokens like these is accepted by Wings. Wings itself only checks the
 signature, `exp`, `scope`, the denylist claims (`iat`, `server_uuid`, `user_uuid`) and the
-type-specific claims. It does not check `iss`, `aud` or `nbf` (§5.1). The upload and
-backup-download tokens weren't sampled: their lifetimes and extra claims are **UNVERIFIED**.
+type-specific claims. It does not check `iss`, `aud` or `nbf` (§5.1). The transfer token
+is signed by the panel for the destination node and wasn't sampled (§3.6).
 
 ---
 
@@ -608,10 +609,11 @@ Server: `sftp/server.go`. Per-session handler: `sftp/handler.go`.
   `GET /api/servers/:server/metrics?range=1h` returned 3 one-minute points with CPU
   average and peak, memory, disk and network values, and `GET /metrics` reported the
   server's state, health and CPU in the Prometheus format.
+- **2026-10-13:** with `system.metrics.token` set from a file, that token got `200` from
+  `GET /metrics` and `403` from `GET /api/servers`.
 
 ## 9. Open questions (all UNVERIFIED)
 
-- Lifetimes and claims of the stock panel's **upload** and **backup-download** tokens. The websocket and file-download tokens are documented in §5.4.
 - Whether stock panels **older than 1.15.1** include `scope`, `user_uuid` and `iat`. 1.15.1 does (§8).
 - Whether the stock panel's `/api/remote/*` routes care about the `Accept: application/vnd.pterodactyl.v1+json` or `User-Agent` headers. Keep both unchanged until this is checked.
 - Whether `jwt.Verify` (gbrlsnchs/jwt v3) enforces the header `alg`.
