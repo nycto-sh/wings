@@ -4,6 +4,8 @@ Guides for the features that Nycto Wings adds or changes compared with Pterodact
 The full panel ⇄ daemon contract, including everything listed here, is in
 [`protocol/WINGS_API.md`](../protocol/WINGS_API.md).
 
+**Building a panel?** Start with [panel-integration.md](panel-integration.md).
+
 | Feature | Added | Guide |
 |---|---|---|
 | Health checks: TCP, HTTP and process checks that decide when a server is ready, with live healthy/unhealthy states | 2026-10-13 | [health-checks.md](health-checks.md) |

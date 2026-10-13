@@ -22,9 +22,11 @@ jobs:
         env:
           CGO_ENABLED: 0
         run: |
-          GOARCH=amd64 go build -o dist/nycto-wings_linux_amd64 -v -trimpath -ldflags="-s -w -X github.com/nycto-sh/wings/system.Version=${{ github.ref_name }}" github.com/nycto-sh/wings
+          # The version is shown as "v<version>", so leave out the tag's own "v".
+          VERSION="${GITHUB_REF_NAME#v}"
+          GOARCH=amd64 go build -o dist/nycto-wings_linux_amd64 -v -trimpath -ldflags="-s -w -X github.com/nycto-sh/wings/system.Version=${VERSION}" github.com/nycto-sh/wings
           chmod 755 dist/nycto-wings_linux_amd64
-          GOARCH=arm64 go build -o dist/nycto-wings_linux_arm64 -v -trimpath -ldflags="-s -w -X github.com/nycto-sh/wings/system.Version=${{ github.ref_name }}" github.com/nycto-sh/wings
+          GOARCH=arm64 go build -o dist/nycto-wings_linux_arm64 -v -trimpath -ldflags="-s -w -X github.com/nycto-sh/wings/system.Version=${VERSION}" github.com/nycto-sh/wings
           chmod 755 dist/nycto-wings_linux_arm64
           (cd dist && sha256sum nycto-wings_linux_* > checksums.txt)
 

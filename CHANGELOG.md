@@ -1,5 +1,28 @@
 # Changelog
 
+Nycto Wings releases come first. The history of upstream Pterodactyl Wings, which Nycto Wings is
+based on, follows below them.
+
+## v0.1.0
+The first release of Nycto Wings, a fork of Pterodactyl Wings for the Nycto panel. It is based on
+upstream Wings `develop` as of 2026-10-09 (v1.13.3 plus later fixes), and stays compatible with
+the Pterodactyl panel: everything Nycto adds is optional.
+
+### Added
+* Health checks: servers can be marked online when a TCP, HTTP or process check passes, instead of when the console prints a line, and report live starting, healthy and unhealthy states ([docs](https://github.com/nycto-sh/wings/blob/v0.1.0/docs/health-checks.md))
+* Crash explanations: a structured `crash` event with the reason, a ready-made message such as "ran out of memory (2 GB limit)" and the last console lines ([docs](https://github.com/nycto-sh/wings/blob/v0.1.0/docs/crash-detection.md))
+* Crash-loop protection: a server that crashes 3 times in 10 minutes is no longer restarted until someone starts it
+* Metrics history: a week of CPU, memory, disk and network usage per server in a fixed-size file, for graphs, and a Prometheus `/metrics` endpoint with an optional read-only token ([docs](https://github.com/nycto-sh/wings/blob/v0.1.0/docs/metrics.md))
+* Docker events: a server stopped or started with `docker stop` / `docker start` by hand is no longer mistaken for a crash, and is attached to again ([docs](https://github.com/nycto-sh/wings/blob/v0.1.0/docs/docker-events.md))
+* Disk usage measured with project quotas where the filesystem supports them, with an optional hard limit ([docs](https://github.com/nycto-sh/wings/blob/v0.1.0/docs/disk-usage.md))
+* An installer and updater for Linux servers (`scripts/install.sh`), and a guide for building a panel ([docs](https://github.com/nycto-sh/wings/blob/v0.1.0/docs/panel-integration.md))
+
+### Changed
+* Renamed so that it can run beside Pterodactyl Wings on the same machine: binary `nycto-wings`, configuration in `/etc/nycto`, data in `/var/lib/nycto`, user `nycto`, Docker network `nycto_nw`. Environment variables use the `NYCTO_` prefix, with `WINGS_` as a fallback
+* Servers start without waiting for their files to be counted, offline servers are not counted again, and servers far from their disk limit are counted less often ([docs](https://github.com/nycto-sh/wings/blob/v0.1.0/docs/disk-usage.md))
+* `nycto-wings configure` creates the configuration directory if it is missing
+* Diagnostics reports are only uploaded to a hastebin given with `--hastebin-url`
+
 ## v1.12.3
 ### Fixed
 * Support properly restricting configuration in egg templating

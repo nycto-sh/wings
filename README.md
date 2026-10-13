@@ -52,7 +52,7 @@ curl -fsSL https://raw.githubusercontent.com/nycto-sh/wings/develop/scripts/inst
 |---|---|
 | `--panel-url URL`, `--node ID` | Configure the node against this panel, then start the service |
 | `--token TOKEN` | Panel API token. If omitted, you're asked for it |
-| `--source` | Build from source instead of downloading a release. Use this until the first release is published |
+| `--source` | Build from source instead of downloading the latest release |
 | `--ref REF` | Git branch or tag to build with `--source` (default `develop`) |
 | `--version TAG` | Release to download (default: latest) |
 | `--skip-docker` | Don't install Docker |
@@ -104,6 +104,11 @@ make build                     # release binaries for amd64 and arm64 in build/
 
 Changes that touch file handling, SFTP, authentication or container configuration get extra review. Keep
 protocol compatibility unless a break has been agreed. Contributor notes are in [`CLAUDE.md`](CLAUDE.md).
+
+## Building a panel
+
+Building a panel for Nycto Wings? Start with [`docs/panel-integration.md`](docs/panel-integration.md),
+then use [`protocol/WINGS_API.md`](protocol/WINGS_API.md) as the full reference.
 
 ## Features
 

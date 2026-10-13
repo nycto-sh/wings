@@ -1,7 +1,9 @@
 # Wings ⇄ Panel protocol map
 
-This file maps the contract between the daemon in this repo and a panel, as the
-**current source tree** implements it (branch `develop`, at commit `5d9e2c3`).
+This file maps the contract between the daemon in this repo and a panel, as
+**Nycto Wings v0.1.0** implements it. If you're building a panel, start with the
+practical guide [`docs/panel-integration.md`](../docs/panel-integration.md),
+and use this file as the reference.
 It covers what Wings calls on the panel, what Wings serves, the console
 websocket, the JWTs, node authentication and SFTP authentication.
 
