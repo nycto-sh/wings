@@ -16,9 +16,11 @@ Conventions:
 - **UNVERIFIED** marks anything this repo can't prove. That's usually panel-side
   behaviour (what the panel sends, how it signs things), or library behaviour
   that wasn't checked in the vendored source.
-- "Stock panel" means the upstream Pterodactyl Panel. This tree includes
-  post-fork hardening commits. Where a check could reject an older stock panel,
-  this file says so.
+- "Stock panel" means the upstream Pterodactyl Panel. The fork is based on
+  upstream Wings `develop` at `5d9e2c3` (2026-10-09), which is release v1.13.3
+  plus 23 later upstream commits, including hardening that isn't in a release
+  yet. Where a check could reject an older stock panel, this file says so. How
+  upstream changes are brought in: [`docs/upstream-sync.md`](../docs/upstream-sync.md).
 
 ---
 

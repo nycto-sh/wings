@@ -52,6 +52,7 @@
 | `environment/docker/events.go` | Docker events stream: stops/starts done outside Wings (`OnContainerEvent`, `StoppedExternally`), see `docs/docker-events.md` |
 | `internal/metrics/`, `server/metrics.go`, `server/prometheus.go`, `router/router_metrics.go` | Metrics history (fixed-size ring file per server) and Prometheus `/metrics`, see `docs/metrics.md` |
 | `server/crash.go` | Crash detection: structured `crash` event, crash-loop limit (`system.crash_detection.max_crashes`/`window`), see `docs/crash-detection.md` |
+| `scripts/upstream-status.sh`, `scripts/fix-module-path.sh` | Upstream sync: see what Pterodactyl changed, and restore the module path after merging, see `docs/upstream-sync.md` |
 | `scripts/install.sh` | Installer/updater for a fresh Linux server (release download or `--source` build). Keep it shellcheck-clean |
 | `contrib/` | `nycto-wings.service` systemd unit. `scripts/install.sh` embeds a copy, so keep the two in sync |
 | `.github/assets/` | Nycto logo/icon (`*-dark.png` = white for dark backgrounds, `*-light.png` = dark), and `originals/` with the source artwork |

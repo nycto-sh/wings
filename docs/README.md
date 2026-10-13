@@ -12,6 +12,11 @@ The full panel ⇄ daemon contract, including everything listed here, is in
 | Docker events: `docker stop` / `docker start` run by hand are handled correctly instead of looking like crashes or going unnoticed | 2026-10-13 | [docker-events.md](docker-events.md) |
 | Metrics history and Prometheus: a week of CPU, memory, disk and network per server for graphs, and a `/metrics` endpoint for monitoring | 2026-10-13 | [metrics.md](metrics.md) |
 
+## Maintenance
+
+- [Bringing in upstream changes](upstream-sync.md): how fixes from Pterodactyl Wings get into the
+  fork (`scripts/upstream-status.sh`, `scripts/fix-module-path.sh`).
+
 ## Installation and setup
 
 - Installing and updating: see the [README](../README.md#install) and `scripts/install.sh`.
